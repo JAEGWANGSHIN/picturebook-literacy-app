@@ -933,18 +933,24 @@ def main():
 
         if "ai_recs" in st.session_state and st.session_state["ai_recs"]:
             st.markdown('<div style="font-size:.8rem;font-weight:600;color:#6B7280;margin-bottom:.5rem;">추천 그림책 — 버튼을 누르면 바로 적용됩니다</div>', unsafe_allow_html=True)
-            for i, r in enumerate(st.session_state["ai_recs"]):
-                # 현재 선택된 책이면 강조 스타일
+            recs = st.session_state["ai_recs"]
+            cols = st.columns(len(recs))
+            for i, (r, col) in enumerate(zip(recs, cols)):
                 is_selected = st.session_state.get("active_book") == r["title"] and st.session_state.get("active_tab") == "ai"
                 label = f"{'✅ ' if is_selected else ''}{i+1}. {r['title']}"
-                if st.button(label, key=f"btn_ai_book_{i}", use_container_width=True):
-                    st.session_state["active_tab"] = "ai"
-                    st.session_state["active_book"] = r["title"]
-                    st.session_state["active_book_info"] = db_get_by_title(r["title"])
-                    st.session_state.pop("active_custom_summary", None)
-                    st.rerun()
-                if r.get("reason"):
+                with col:
+                    if st.button(label, key=f"btn_ai_book_{i}", use_container_width=True):
+                        st.session_state["active_tab"] = "ai"
+                        st.session_state["active_book"] = r["title"]
+                        st.session_state["active_book_info"] = db_get_by_title(r["title"])
+                        st.session_state.pop("active_custom_summary", None)
+                        st.rerun()
+            # 선택된 책의 추천 이유 표시
+            active = st.session_state.get("active_book")
+            for r in recs:
+                if r["title"] == active and r.get("reason"):
                     st.caption(f"💡 {r['reason']}")
+                    break
 
     # ─ DB 탭 ─
     with book_tab2:
