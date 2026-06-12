@@ -435,6 +435,14 @@ html, body,
   border-top: 1px solid #F3F4F6;
 }
 
+/* ── 전체 생성 버튼 (특별 강조) ── */
+[data-testid="baseButton-primary"].generate-all-btn,
+.generate-all [data-testid="baseButton-primary"] {
+  background: linear-gradient(135deg, #1A1A2E, #3730A3) !important;
+  font-size: 1rem !important;
+  padding: .8rem 0 !important;
+  letter-spacing: .3px;
+}
 /* ── 메인 버튼 ── */
 [data-testid="baseButton-primary"] {
   background: #1A1A2E !important;
@@ -1123,40 +1131,71 @@ def main():
             st.info(f"📖 선택된 책: **{book}**")
 
 
-    # ── STEP 3: 단계별 생성 ────────────────────────────────────────
-    st.markdown('<div class="section-title st-green">단계별 생성</div>', unsafe_allow_html=True)
+    # ── STEP 3: 수업안 생성 ─────────────────────────────────────────
+    st.markdown('<div class="section-title st-green">수업안 생성</div>', unsafe_allow_html=True)
 
     if not book:
         st.info("책을 먼저 선택해 주세요.")
     else:
-        # PDF/웹검색으로 얻은 책 정보
         _ctx_extra = st.session_state.get("active_custom_summary", "")
 
-        sc1, sc2, sc3, sc4 = st.columns(4)
-        with sc1:
-            if st.button("❓ 질문 생성", use_container_width=True, key="btn_q"):
-                with st.spinner("질문 생성 중..."):
-                    qs = gen_questions(grade, theme, book, book_info, _ctx_extra)
+        # ── 완료 현황 배지 ──────────────────────────────────────────
+        steps = [
+            ("questions",   "❓ 질문"),
+            ("activities",  "🎨 활동"),
+            ("lessonplan",  "🗒️ 지도안"),
+            ("eval_parent", "⭐ 평가"),
+        ]
+        done_count = sum(1 for k, _ in steps if k in st.session_state)
+        status_parts = []
+        for k, label in steps:
+            if k in st.session_state:
+                status_parts.append(f'<span style="background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;border-radius:4px;padding:2px 8px;font-size:.75rem;font-weight:600;">{label} ✓</span>')
+            else:
+                status_parts.append(f'<span style="background:#F9FAFB;color:#9CA3AF;border:1px solid #E5E7EB;border-radius:4px;padding:2px 8px;font-size:.75rem;">{label}</span>')
+        st.markdown(
+            '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.8rem;">' +
+            " ".join(status_parts) + "</div>",
+            unsafe_allow_html=True
+        )
+
+        # ── 메인: 전체 생성 버튼 ───────────────────────────────────
+        if st.button("✨ 수업안 전체 생성 (질문 + 활동 + 지도안 + 평가)", type="primary", use_container_width=True, key="btn_all"):
+            prog = st.progress(0, text="수업안을 만드는 중...")
+            with st.spinner("❓ 질문 생성 중..."):
+                qs = gen_questions(grade, theme, book, book_info, _ctx_extra)
                 st.session_state["questions"] = qs
-                st.session_state["q_meta"] = (grade, theme, book)
+            prog.progress(25, text="🎨 활동 생성 중...")
+            acts = gen_activities(grade, theme, book, lesson_time, student_context, _ctx_extra)
+            st.session_state["activities"] = acts
+            prog.progress(50, text="🗒️ 지도안 생성 중...")
+            lp = gen_lessonplan(grade, theme, book, lesson_time, student_context, _ctx_extra)
+            st.session_state["lessonplan"] = lp
+            prog.progress(75, text="⭐ 평가·안내문 생성 중...")
+            ev = gen_eval_parent(grade, theme, book, _ctx_extra)
+            st.session_state["eval_parent"] = ev
+            prog.progress(100, text="완료!")
+            st.rerun()
 
-        with sc2:
-            if st.button("🎨 활동 생성", use_container_width=True, key="btn_a"):
-                with st.spinner("활동 생성 중..."):
-                    acts = gen_activities(grade, theme, book, lesson_time, student_context, _ctx_extra)
-                st.session_state["activities"] = acts
-
-        with sc3:
-            if st.button("🗒️ 지도안 생성", use_container_width=True, key="btn_l"):
-                with st.spinner("지도안 생성 중..."):
-                    lp = gen_lessonplan(grade, theme, book, lesson_time, student_context, _ctx_extra)
-                st.session_state["lessonplan"] = lp
-
-        with sc4:
-            if st.button("⭐ 평가+안내문", use_container_width=True, key="btn_e"):
-                with st.spinner("평가·안내문 생성 중..."):
-                    ev = gen_eval_parent(grade, theme, book, _ctx_extra)
-                st.session_state["eval_parent"] = ev
+        # ── 보조: 개별 재생성 (작은 버튼) ─────────────────────────
+        with st.expander("🔄 개별 항목 재생성", expanded=False):
+            sc1, sc2, sc3, sc4 = st.columns(4)
+            with sc1:
+                if st.button("❓ 질문 재생성", use_container_width=True, key="btn_q"):
+                    with st.spinner(""):
+                        st.session_state["questions"] = gen_questions(grade, theme, book, book_info, _ctx_extra)
+            with sc2:
+                if st.button("🎨 활동 재생성", use_container_width=True, key="btn_a"):
+                    with st.spinner(""):
+                        st.session_state["activities"] = gen_activities(grade, theme, book, lesson_time, student_context, _ctx_extra)
+            with sc3:
+                if st.button("🗒️ 지도안 재생성", use_container_width=True, key="btn_l"):
+                    with st.spinner(""):
+                        st.session_state["lessonplan"] = gen_lessonplan(grade, theme, book, lesson_time, student_context, _ctx_extra)
+            with sc4:
+                if st.button("⭐ 평가 재생성", use_container_width=True, key="btn_e"):
+                    with st.spinner(""):
+                        st.session_state["eval_parent"] = gen_eval_parent(grade, theme, book, _ctx_extra)
 
         # ── 결과 ──────────────────────────────────────────────────
         has_any = any(k in st.session_state for k in
@@ -1218,17 +1257,28 @@ def main():
                 )
 
             with dl3:
+                all_done = all(k in st.session_state for k in
+                               ["questions","activities","lessonplan","eval_parent"])
                 st.markdown('<div class="ppt-wrap">', unsafe_allow_html=True)
-                if st.button("🎞️ PPT 생성 (Canva·발표용)", use_container_width=True, key="btn_ppt"):
-                    with st.spinner("🖍️ PPT 슬라이드 만드는 중..."):
-                        pptx_bytes = make_pptx(
-                            grade, theme, book, lesson_time,
-                            st.session_state.get("questions", {}),
-                            st.session_state.get("activities", ""),
-                        )
-                    if pptx_bytes:
-                        st.session_state["pptx_bytes"] = pptx_bytes
-
+                if all_done:
+                    if st.button("🎞️ PPT 생성 (Canva·발표용)", use_container_width=True, key="btn_ppt"):
+                        with st.spinner("🖍️ PPT 슬라이드 만드는 중..."):
+                            pptx_bytes = make_pptx(
+                                grade, theme, book, lesson_time,
+                                st.session_state.get("questions", {}),
+                                st.session_state.get("activities", ""),
+                            )
+                        if pptx_bytes:
+                            st.session_state["pptx_bytes"] = pptx_bytes
+                else:
+                    missing = sum(1 for k in ["questions","activities","lessonplan","eval_parent"]
+                                  if k not in st.session_state)
+                    st.button(
+                        f"🎞️ PPT 생성 (수업안 {4-missing}/4 완료)",
+                        use_container_width=True, key="btn_ppt",
+                        disabled=True,
+                        help="'수업안 전체 생성' 버튼을 먼저 눌러 주세요"
+                    )
                 if "pptx_bytes" in st.session_state:
                     st.download_button(
                         "⬇️ PPT 다운로드",
