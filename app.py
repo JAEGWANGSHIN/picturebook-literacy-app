@@ -423,17 +423,18 @@ def ai_recommend_books(situation: str) -> list[dict]:
         return []
 
 # ── 질문 생성 ─────────────────────────────────────────────────────
-def gen_questions(grade, theme, book, book_info) -> dict:
+def gen_questions(grade, theme, book, book_info, book_ctx_extra: str = "") -> dict:
     if book_info:
         book_ctx = (
             f"작가: {book_info['author']}\n"
             f"줄거리: {book_info['summary']}\n"
             f"이 책의 문해력 요소: {', '.join(book_info.get('literacy_elements', []))}"
         )
+    elif book_ctx_extra:
+        book_ctx = f"[교사 제공 책 정보]\n{book_ctx_extra}"
     else:
         book_ctx = ""
 
-    # 수업 주제와 책의 문해력 요소를 모두 질문에 반영하도록 명시
     theme_instruction = (
         f"수업 주제는 '{theme}'입니다. "
         f"질문의 상당수(최소 3~4개)는 반드시 '{theme}' 관련 내용을 포함해야 합니다. "
@@ -465,11 +466,12 @@ def gen_questions(grade, theme, book, book_info) -> dict:
         return {}
 
 # ── 활동 생성 ─────────────────────────────────────────────────────
-def gen_activities(grade, theme, book, lesson_time, student_context) -> str:
+def gen_activities(grade, theme, book, lesson_time, student_context, book_ctx_extra: str = "") -> str:
+    extra = f"\n[교사 제공 책 정보]\n{book_ctx_extra}" if book_ctx_extra else ""
     return chat(
         "초등 수업 설계 전문가입니다. 한국어로 작성합니다.",
         f"""학년:{grade} / 주제:{theme} / 그림책:{book} / 시간:{lesson_time}
-학생특성:{student_context or '없음'}
+학생특성:{student_context or '없음'}{extra}
 
 아래 형식으로 3가지 활동을 설계해 주세요.
 ## 활동 1: 도입 (활동명)
@@ -487,11 +489,12 @@ def gen_activities(grade, theme, book, lesson_time, student_context) -> str:
     )
 
 # ── 지도안 생성 ───────────────────────────────────────────────────
-def gen_lessonplan(grade, theme, book, lesson_time, student_context) -> str:
+def gen_lessonplan(grade, theme, book, lesson_time, student_context, book_ctx_extra: str = "") -> str:
+    extra = f"\n[교사 제공 책 정보]\n{book_ctx_extra}" if book_ctx_extra else ""
     return chat(
         "초등 수업 설계 전문가입니다. 한국어로 작성합니다.",
         f"""학년:{grade} / 주제:{theme} / 그림책:{book} / 시간:{lesson_time}
-학생특성:{student_context or '없음'}
+학생특성:{student_context or '없음'}{extra}
 
 도입/전개/정리 단계 지도안을 표 형식으로 작성하세요.
 | 단계 | 시간 | 교사 활동 | 학생 활동 | 유의점 |
@@ -500,10 +503,11 @@ def gen_lessonplan(grade, theme, book, lesson_time, student_context) -> str:
     )
 
 # ── 평가+안내문 생성 ──────────────────────────────────────────────
-def gen_eval_parent(grade, theme, book) -> str:
+def gen_eval_parent(grade, theme, book, book_ctx_extra: str = "") -> str:
+    extra = f"\n[교사 제공 책 정보]\n{book_ctx_extra}" if book_ctx_extra else ""
     return chat(
         "초등 수업 평가 및 학부모 소통 전문가입니다. 한국어로 작성합니다.",
-        f"""학년:{grade} / 주제:{theme} / 그림책:{book}
+        f"""학년:{grade} / 주제:{theme} / 그림책:{book}{extra}
 
 아래 두 가지를 작성해 주세요.
 
