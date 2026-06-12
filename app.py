@@ -725,42 +725,66 @@ def gen_lessonplan(grade, theme, book, lesson_time, student_context,
         f"""학년:{grade} / 주제:{theme} / 그림책:{book} / 시간:{lesson_time}
 학생특성:{student_context or '없음'}{extra}{q_ctx}
 
-[시간 배분 규칙 — 반드시 지키세요]
-- 도입: 5분 (그림책 표지 탐색, 배경지식 활성화, 읽기 전 질문 활용)
-- 전개: 전체 수업 시간에서 도입·정리를 뺀 나머지
-  * 활동1: 대화형 읽기 + 읽는 중 질문 활용
-  * 활동2: 독후 표현 활동
-  * 활동3: 필요한 경우만 추가
-- 정리: 5분 (읽은 후 질문 활용, 성찰)
+[시간 배분 — 고정]
+- 도입: 5분
+- 전개: {lesson_time.replace("분","").strip() if "분" in lesson_time else "30"}분에서 10을 뺀 분 (활동1·활동2, 필요 시 활동3)
+- 정리: 5분
 
-위 질문 카드의 실제 질문 텍스트를 교사 활동 칸에 직접 넣어 주세요.
+[작성 원칙 — 반드시 지키세요]
+1. teacher(교사 발문/활동): 질문은 번호를 붙여 각각 별도 문자열로, "questions" 배열에 저장
+2. student(학생 활동): 각 교사 질문에 대한 구체적 학생 반응/예상 답변을 포함. 단순 행동만 쓰지 말고
+   "A1: 예상 답변 예시 / A2: 예상 답변 예시" 형태로 상세히 작성
+3. note(유의점): 이 그림책·주제에 특화된 유의점. "학생을 격려한다" 같은 뻔한 표현 금지.
+   예) "「{book}」의 경우 ~한 장면에서 아이들이 ~반응을 보일 수 있으므로 ~" 처럼 구체적으로
 
-아래 JSON 형식으로만 작성하세요:
+JSON 형식:
 [
   {{
     "stage": "도입",
     "duration": "5분",
     "rows": [
-      {{"teacher": "교사 활동 (읽기 전 질문 포함)", "student": "학생 활동", "note": "유의점"}}
+      {{
+        "questions": ["읽기 전 질문1", "읽기 전 질문2"],
+        "teacher": "교사 도입 활동 설명 (질문 제시 방법 포함)",
+        "student": "A1: 예시 답변 / A2: 예시 답변. 분위기·참여 방식 설명",
+        "note": "이 그림책 특화 유의점"
+      }}
     ]
   }},
   {{
     "stage": "전개",
     "duration": "X분",
     "rows": [
-      {{"teacher": "활동1 — 대화형 읽기 (읽는 중 질문 포함)", "student": "학생 활동", "note": "유의점"}},
-      {{"teacher": "활동2 — 독후 표현 활동", "student": "학생 활동", "note": "유의점"}}
+      {{
+        "activity": "활동1: 대화형 읽기",
+        "questions": ["읽는 중 질문1", "읽는 중 질문2", "읽는 중 질문3"],
+        "teacher": "그림책 읽어주며 질문 제시 방법",
+        "student": "A1: 구체적 예상 답변 / A2: 구체적 예상 답변 / 학생 상호작용 방식",
+        "note": "이 그림책 특화 유의점"
+      }},
+      {{
+        "activity": "활동2: 독후 표현",
+        "questions": [],
+        "teacher": "독후 표현 활동 안내",
+        "student": "구체적인 활동 내용, 표현 방식, 예상 결과물",
+        "note": "이 그림책 특화 유의점"
+      }}
     ]
   }},
   {{
     "stage": "정리",
     "duration": "5분",
     "rows": [
-      {{"teacher": "교사 활동 (읽은 후 질문 포함)", "student": "학생 활동", "note": "유의점"}}
+      {{
+        "questions": ["읽은 후 질문1", "읽은 후 질문2"],
+        "teacher": "정리 활동 및 질문 제시",
+        "student": "A1: 구체적 예상 답변 / A2: 구체적 예상 답변. 성찰 방식",
+        "note": "이 그림책 특화 유의점"
+      }}
     ]
   }}
 ]""",
-        max_tokens=1400,
+        max_tokens=2000,
     )
 
 # ── 평가+안내문 생성 ──────────────────────────────────────────────
@@ -774,6 +798,7 @@ def gen_eval_parent(grade, theme, book, book_ctx_extra: str = "") -> str:
 평가 서술 원칙: 모든 단계를 긍정적·성장 지향적으로 씁니다.
 "부족하다", "못한다", "어렵다" 같은 부정 표현 금지.
 노력 필요는 반드시 "교사·친구의 도움을 받아 ～할 수 있다" 형태로.
+반드시 "~합니다", "~있습니다" 같은 합쇼체 금지. 모든 서술어는 "~이다", "~한다", "~할 수 있다" 형태로 작성.
 
 {{
   "criteria": [
@@ -1001,7 +1026,7 @@ def result_section(label: str, content_fn, *args, **kwargs):
 
 # ── 지도안 테이블 렌더러 ─────────────────────────────────────────
 def render_lessonplan(raw: str):
-    """gen_lessonplan JSON → 테이블 카드 UI"""
+    """gen_lessonplan JSON → 상세 테이블 UI (질문 번호, 예상 답변 포함)"""
     import re as _re
     try:
         m = _re.search(r'\[.*\]', raw, _re.DOTALL)
@@ -1016,28 +1041,69 @@ def render_lessonplan(raw: str):
         "정리": ("#10B981", "#F0FDF4"),
     }
 
-    header = """<table class="lp-table">
+    def fmt_teacher(row: dict, q_color: str) -> str:
+        """질문 번호 + 줄바꿈 + 교사 활동 텍스트"""
+        qs = row.get("questions", [])
+        activity = row.get("activity", "")
+        teacher  = row.get("teacher", "")
+        parts = []
+        if activity:
+            parts.append(f'<div style="font-weight:700;font-size:.8rem;color:{q_color};margin-bottom:4px;">▶ {activity}</div>')
+        if qs:
+            q_lines = "".join(
+                f'<div style="display:flex;gap:5px;margin-bottom:4px;">' +
+                f'<span style="min-width:18px;font-weight:700;color:{q_color};font-size:.78rem;">{i+1}.</span>' +
+                f'<span style="font-size:.82rem;color:#1D4ED8;line-height:1.5;">{q}</span></div>'
+                for i, q in enumerate(qs)
+            )
+            parts.append(f'<div style="background:#EFF6FF;border-radius:6px;padding:5px 7px;margin-bottom:5px;">{q_lines}</div>')
+        if teacher:
+            parts.append(f'<div style="font-size:.82rem;color:#374151;line-height:1.5;">{teacher}</div>')
+        return "".join(parts)
+
+    def fmt_student(row: dict) -> str:
+        """학생 활동 + 예상 답변을 Q번호별로 구분"""
+        student = row.get("student", "")
+        if not student:
+            return ""
+                # "A1:" 또는 "A1 —" 패턴으로 분리 (학생 예상 답변)
+        segments = _re.split(r'A(\d+)[\s]*[—\-:]', student)
+        if len(segments) <= 1:
+            return f'<div style="font-size:.82rem;color:#166534;line-height:1.6;">{student}</div>'
+        result = f'<div style="font-size:.82rem;color:#166534;line-height:1.5;">{segments[0]}</div>' if segments[0].strip() else ""
+        for j in range(1, len(segments), 2):
+            anum = segments[j]
+            content = segments[j+1].strip() if j+1 < len(segments) else ""
+            result += (
+                f'<div style="display:flex;gap:5px;margin:3px 0;padding:4px 7px;' +
+                f'background:#F0FDF4;border-radius:5px;">' +
+                f'<span style="min-width:22px;font-weight:700;color:#059669;font-size:.75rem;">A{anum}</span>' +
+                f'<span style="font-size:.81rem;color:#166534;line-height:1.5;">{content}</span></div>'
+            )
+        return result
+
+    header = '''<table class="lp-table">
       <thead><tr>
-        <th style="width:7%;">단계</th>
-        <th style="width:7%;">시간</th>
-        <th style="width:30%;">🧑‍🏫 교사 활동</th>
-        <th style="width:30%;">🙋 학생 활동</th>
-        <th style="width:26%;">💡 유의점</th>
-      </tr></thead><tbody>"""
+        <th style="width:6%;">단계</th>
+        <th style="width:6%;">시간</th>
+        <th style="width:35%;">🧑‍🏫 교사 발문 · 활동</th>
+        <th style="width:35%;">🙋 학생 활동 · 예상 반응</th>
+        <th style="width:18%;">💡 유의점</th>
+      </tr></thead><tbody>'''
     rows_html = ""
 
     for stage in stages:
-        name = stage.get("stage", "")
-        dur  = stage.get("duration", "")
-        rows = stage.get("rows", [])
+        name  = stage.get("stage", "")
+        dur   = stage.get("duration", "")
+        rows  = stage.get("rows", [])
         color, bg = stage_cfg.get(name, ("#6B7280", "#F9FAFB"))
         rcount = len(rows)
 
         for i, row in enumerate(rows):
-            teacher = row.get("teacher", "")
-            student = row.get("student", "")
-            note    = row.get("note", "")
-            note_html = f'<span class="lp-note">{note}</span>' if note else ""
+            teacher_html = fmt_teacher(row, color)
+            student_html = fmt_student(row)
+            note = row.get("note", "")
+            note_html = f'<div class="lp-note" style="font-size:.78rem;line-height:1.5;">{note}</div>' if note else ""
 
             if i == 0:
                 rows_html += f"""<tr>
@@ -1045,15 +1111,15 @@ def render_lessonplan(raw: str):
     <span class="lp-stage" style="background:{color};color:white;">{name}</span>
   </td>
   <td rowspan="{rcount}" class="lp-dur">{dur}</td>
-  <td class="lp-teacher">{teacher}</td>
-  <td class="lp-student">{student}</td>
-  <td>{note_html}</td>
+  <td class="lp-teacher" style="padding:10px 12px;">{teacher_html}</td>
+  <td class="lp-student" style="padding:10px 12px;">{student_html}</td>
+  <td style="padding:10px 12px;">{note_html}</td>
 </tr>"""
             else:
                 rows_html += f"""<tr>
-  <td class="lp-teacher">{teacher}</td>
-  <td class="lp-student">{student}</td>
-  <td>{note_html}</td>
+  <td class="lp-teacher" style="padding:10px 12px;">{teacher_html}</td>
+  <td class="lp-student" style="padding:10px 12px;">{student_html}</td>
+  <td style="padding:10px 12px;">{note_html}</td>
 </tr>"""
 
     footer = "</tbody></table>"
