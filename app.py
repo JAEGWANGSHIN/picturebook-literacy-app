@@ -818,6 +818,123 @@ criteria는 4개, self_eval은 3개.""",
     )
 
 
+
+# ── 학생 활동지 생성 ──────────────────────────────────────────────
+def gen_worksheet(grade, theme, book, book_info, questions: dict = None,
+                  book_ctx_extra: str = "") -> str:
+    """AI가 HTML 활동지를 생성"""
+    extra = f"\n[교사 제공 책 정보]\n{book_ctx_extra}" if book_ctx_extra else ""
+
+    # 질문 카드에서 핵심 질문 추출
+    q_sample = ""
+    if questions:
+        all_qs = []
+        for section in ["before","during","after"]:
+            for q in questions.get(section, []):
+                all_qs.append(q.get("text","") if isinstance(q,dict) else str(q))
+        if all_qs:
+            q_sample = "\n".join(f"- {q}" for q in all_qs[:5])
+
+    pub = book_info.get("publisher","") if book_info else ""
+    author = book_info.get("author","") if book_info else ""
+    book_info_str = f"{author} / {pub}" if pub else author
+
+    resp = chat(
+        "초등 수업 활동지 디자이너입니다. 반드시 완전한 HTML만 출력하세요. 다른 텍스트 없이.",
+        f"""학년:{grade} / 주제:{theme} / 그림책:{book} ({book_info_str})
+학생 활동지를 만들어 주세요.{extra}
+
+참고 질문 (일부 활용 가능):
+{q_sample}
+
+[디자인 원칙]
+- A4 1장 (210×297mm), 인쇄 가능한 HTML
+- 구글 폰트 Nanum Gothic + Gaegu 사용
+- 파스텔 컬러, 이모지 적극 활용
+- 학생이 흥미를 느낄 수 있는 세련되고 귀여운 디자인
+- 그림책 제목과 주제가 상단에 크게 표시
+- 활동 섹션: 읽기 전(1문항) + 읽으면서(2문항) + 읽은 후(2문항) + 나만의 그림/표현 공간 1개
+- 각 문항 아래 충분한 답변 공간 (점선 또는 빈 박스)
+- 하단에 이름·날짜 기입란
+
+아래 조건을 반드시 지키세요:
+1. <html>부터 </html>까지 완전한 HTML 출력
+2. 외부 폰트는 Google Fonts CDN만 사용
+3. print용 CSS 포함 (@media print)
+4. 배경색은 인쇄 시 보이도록 -webkit-print-color-adjust: exact 설정
+5. 전체 높이가 A4 1장을 넘지 않도록 조절""",
+        max_tokens=2500,
+    )
+    # HTML 추출
+    import re as _re
+    m = _re.search(r'<!DOCTYPE.*?</html>|<html.*?</html>', resp, _re.DOTALL | _re.IGNORECASE)
+    return m.group() if m else resp
+
+
+def worksheet_to_pdf(html: str) -> bytes | None:
+    """HTML → PDF 바이트 (weasyprint)"""
+    try:
+        from weasyprint import HTML as WH
+        return WH(string=html).write_pdf()
+    except Exception as e:
+        return None
+
+
+# ── 학생 활동지 생성 ──────────────────────────────────────────────
+def gen_worksheet(grade, theme, book, book_info, questions: dict = None,
+                  book_ctx_extra: str = "") -> str:
+    """AI가 A4 HTML 활동지 생성"""
+    pub    = book_info.get("publisher","") if book_info else ""
+    author = book_info.get("author","")    if book_info else ""
+    book_str = f"{author} · {pub}" if pub else author
+
+    # 질문 카드에서 샘플 추출
+    q_lines = ""
+    if questions:
+        all_qs = []
+        for sec in ["before","during","after"]:
+            for q in questions.get(sec,[]):
+                all_qs.append(q.get("text","") if isinstance(q,dict) else str(q))
+        q_lines = "\n".join(f"- {q}" for q in all_qs[:6])
+
+    return chat(
+        "초등 그림책 수업 활동지 디자이너입니다. 완전한 HTML만 출력하고 다른 텍스트는 절대 쓰지 마세요.",
+        f"""그림책: 「{book}」 ({book_str}) / 학년: {grade} / 주제: {theme}
+
+참고 질문:
+{q_lines}
+
+아래 조건을 모두 지켜 학생 활동지 HTML을 만드세요.
+
+[디자인]
+- Google Fonts: Nanum Gothic + Gaegu (CDN)
+- A4 1장 (210×297mm), @media print 포함
+- -webkit-print-color-adjust: exact
+- 파스텔 배경 (#FFF9F0 또는 유사), 컬러풀한 섹션 헤더
+- 이모지 적극 사용, 점선 답변칸
+
+[구성 — 정확히 이 순서로]
+1. 상단 헤더: 그림책 제목(Gaegu 큰 글씨) + 이름·날짜란
+2. 읽기 전 📖: 예측/상상 질문 1개 + 답변칸(점선 3줄)
+3. 읽으면서 🔍: 핵심 질문 2개 + 각 답변칸(점선 2줄)
+4. 읽은 후 💬: 추론/삶연결 질문 2개 + 각 답변칸(점선 2줄)
+5. 나만의 표현 🎨: 빈 박스 (그림/글 자유 표현) — 전체 높이의 약 20%
+6. 하단: "오늘의 한마디" 한 줄 답변칸
+
+모든 질문은 참고 질문에서 가져오되 학년 수준에 맞게 다듬으세요.
+반드시 <!DOCTYPE html>부터 </html>까지 완전한 HTML로만 답하세요.""",
+        max_tokens=2500,
+    )
+
+
+def worksheet_to_pdf(html: str) -> bytes | None:
+    """HTML → PDF bytes (weasyprint)"""
+    try:
+        from weasyprint import HTML as WH
+        return WH(string=html, base_url=None).write_pdf()
+    except Exception:
+        return None
+
 # ── PDF 그림책 내용 추출 ──────────────────────────────────────────
 def extract_pdf_text(uploaded_file) -> str:
     """업로드된 PDF에서 텍스트 추출 (PyMuPDF 우선, 없으면 pdfplumber)"""
@@ -1521,6 +1638,7 @@ def main():
             ("activities",  "🎨 활동"),
             ("lessonplan",  "🗒️ 지도안"),
             ("eval_parent", "⭐ 평가"),
+            ("worksheet",   "📋 활동지"),
         ]
         done_count = sum(1 for k, _ in steps if k in st.session_state)
         status_parts = []
@@ -1577,7 +1695,7 @@ def main():
 
         # ── 결과 ──────────────────────────────────────────────────
         has_any = any(k in st.session_state for k in
-                      ["questions","activities","lessonplan","eval_parent"])
+                      ["questions","activities","lessonplan","eval_parent","worksheet"])
         if has_any:
             st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
             st.markdown('<div class="section-title">생성 결과</div>', unsafe_allow_html=True)
@@ -1601,6 +1719,49 @@ def main():
                 st.markdown('<div class="result-section"><div style="padding:.65rem 1rem .5rem;font-size:.9rem;font-weight:600;color:#111827;">⭐  평가 & 학부모 안내문</div>', unsafe_allow_html=True)
                 render_eval_parent(st.session_state["eval_parent"])
                 st.markdown('</div>', unsafe_allow_html=True)
+
+            # ── 학생 활동지 ─────────────────────────────────────────
+            st.markdown('<div class="result-section"><div style="padding:.65rem 1rem .5rem;font-size:.9rem;font-weight:600;color:#111827;">📋  학생 활동지</div>', unsafe_allow_html=True)
+            if "worksheet" in st.session_state:
+                # HTML 미리보기
+                ws_html = st.session_state["worksheet"]
+                st.components.v1.html(ws_html, height=900, scrolling=True)
+                st.markdown("<br>", unsafe_allow_html=True)
+                # PDF 다운로드
+                ws_pdf = worksheet_to_pdf(ws_html)
+                if ws_pdf:
+                    st.download_button(
+                        "⬇️ 활동지 PDF 다운로드",
+                        data=ws_pdf,
+                        file_name=f"{book}_{grade}_활동지.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                    )
+                else:
+                    st.download_button(
+                        "⬇️ 활동지 HTML 다운로드",
+                        data=ws_html.encode("utf-8"),
+                        file_name=f"{book}_{grade}_활동지.html",
+                        mime="text/html",
+                        use_container_width=True,
+                    )
+            else:
+                has_q = "questions" in st.session_state
+                if st.button(
+                    "📋 활동지 생성하기" if has_q else "📋 활동지 생성 (질문 먼저 생성해 주세요)",
+                    use_container_width=True,
+                    key="btn_ws",
+                    disabled=not has_q,
+                ):
+                    with st.spinner("✏️ 활동지를 디자인하는 중..."):
+                        ws = gen_worksheet(
+                            grade, theme, book, book_info,
+                            questions=st.session_state.get("questions", {}),
+                            book_ctx_extra=_ctx_extra,
+                        )
+                    st.session_state["worksheet"] = ws
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
 
             # ── 다운로드 & PPT ───────────────────────────────────
             st.markdown("<br>", unsafe_allow_html=True)
