@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # ── pptxgenjs 자동 설치 (Streamlit Cloud 대응) ──────────────────
 import subprocess, sys, os
 
@@ -15,10 +17,9 @@ def _ensure_pptxgenjs():
 
 try:
     _ensure_pptxgenjs()
-except Exception as e:
+except Exception:
     pass  # 설치 실패해도 앱은 실행 — PPT 기능만 비활성
 
-from __future__ import annotations
 import json, os, subprocess, tempfile
 from datetime import datetime
 from io import BytesIO
