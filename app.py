@@ -288,37 +288,34 @@ html, body,
   margin-left: auto;
 }
 
-/* ── 섹션 카드 (공통) ── */
-.section-card {
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #E8EAF0;
-  padding: 1.2rem 1.4rem;
-  margin-bottom: 1rem;
-}
-/* ── 섹션별 파스텔 배경 ── */
-.card-blue   { background: #EFF6FF; border-color: #BFDBFE; }
-.card-purple { background: #F5F3FF; border-color: #DDD6FE; }
-.card-green  { background: #F0FDF4; border-color: #BBF7D0; }
-.card-amber  { background: #FFFBEB; border-color: #FDE68A; }
+
 .section-title {
-  font-size: .72rem;
+  font-size: .78rem;
   font-weight: 700;
   color: #6B7280;
   text-transform: uppercase;
   letter-spacing: .8px;
-  margin-bottom: .9rem;
+  margin: 1.2rem 0 .7rem;
+  padding: .55rem .9rem;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  border-radius: 8px;
 }
 .section-title::before {
   content: '';
   display: inline-block;
-  width: 3px; height: 14px;
+  width: 4px; height: 16px;
   background: #1A1A2E;
-  border-radius: 2px;
+  border-radius: 3px;
+  flex-shrink: 0;
 }
+/* 파스텔 배경을 section-title 자체에 적용 */
+.section-title.st-blue   { background: #EFF6FF; color: #1D4ED8; }
+.section-title.st-purple { background: #F5F3FF; color: #6D28D9; }
+.section-title.st-green  { background: #F0FDF4; color: #065F46; }
+
+
 
 /* ── 구분선 ── */
 .divider {
@@ -878,9 +875,7 @@ def main():
     """, unsafe_allow_html=True)
 
     # ── STEP 1: 수업 조건 ──────────────────────────────────────────
-    st.markdown('<div class="section-title">수업 조건</div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-card card-blue">', unsafe_allow_html=True)
-
+    st.markdown('<div class="section-title st-blue">수업 조건</div>', unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     with c1: grade = st.selectbox("학년", ["유치원","초등 1학년","초등 2학년","초등 3학년",
                                             "초등 4학년","초등 5학년","초등 6학년"],
@@ -894,11 +889,9 @@ def main():
         placeholder="예: 1학년 입학 초기, 친구 관계가 서툰 편, 글쓰기 부담이 큼 등",
         height=64, label_visibility="collapsed")
     st.caption("📝 학생 특성 (선택)")
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # ── STEP 2: 그림책 선택 ────────────────────────────────────────
-    st.markdown('<div class="section-title">그림책 선택</div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-card card-purple">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title st-purple">그림책 선택</div>', unsafe_allow_html=True)
 
     book_tab1, book_tab2, book_tab3 = st.tabs(["🤖 AI 추천", "📚 DB에서 찾기", "✏️ 직접 입력"])
 
@@ -1115,15 +1108,12 @@ def main():
         else:
             st.info(f"📖 선택된 책: **{book}**")
 
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # ── STEP 3: 단계별 생성 ────────────────────────────────────────
-    st.markdown('<div class="section-title">단계별 생성</div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-card card-green">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title st-green">단계별 생성</div>', unsafe_allow_html=True)
 
     if not book:
         st.info("책을 먼저 선택해 주세요.")
-        st.markdown('</div>', unsafe_allow_html=True)
     else:
         # PDF/웹검색으로 얻은 책 정보
         _ctx_extra = st.session_state.get("active_custom_summary", "")
@@ -1154,7 +1144,6 @@ def main():
                     ev = gen_eval_parent(grade, theme, book, _ctx_extra)
                 st.session_state["eval_parent"] = ev
 
-        st.markdown('</div>', unsafe_allow_html=True)
         # ── 결과 ──────────────────────────────────────────────────
         has_any = any(k in st.session_state for k in
                       ["questions","activities","lessonplan","eval_parent"])
