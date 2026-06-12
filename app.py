@@ -433,27 +433,17 @@ html, body,
 .q-card .qt.삶연결{ background: #ECFDF5; color: #065F46; }
 .q-card .qtext { font-size: .82rem; color: #374151; line-height: 1.5; }
 
-/* ── 결과 아코디언 ── */
-[data-testid="stExpander"] {
-  background: white !important;
-  border: 1px solid #E5E7EB !important;
-  border-radius: 10px !important;
-  margin-bottom: 6px !important;
+/* ── 결과 섹션 (커스텀 — expander 미사용) ── */
+.result-section {
+  background: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  overflow: hidden;
 }
-[data-testid="stExpander"]:hover { border-color: #9CA3AF !important; }
-[data-testid="stExpander"] summary {
-  font-size: .9rem !important;
-  font-weight: 600 !important;
-  color: #111827 !important;
-  padding: .65rem 1rem !important;
-}
-/* expander: svg 아이콘 및 arrow 텍스트 제거 */
-[data-testid="stExpander"] summary svg { display: none !important; }
-[data-testid="stExpander"] summary [data-testid="stExpanderToggleIcon"] { display: none !important; }
-[data-testid="stExpander"] summary > div:last-child { display: none !important; }
-[data-testid="stExpander"] summary {
-  display: flex !important;
-  align-items: center !important;
+.result-section-body {
+  padding: .2rem 1rem .8rem;
+  border-top: 1px solid #F3F4F6;
 }
 
 /* ── 메인 버튼 ── */
@@ -834,6 +824,21 @@ def make_pptx(grade, theme, book, lesson_time, questions, activities_text) -> by
         except: pass
 
 # ═══════════════════════════════════════════════════════════════════
+# ── 결과 섹션 렌더러 (expander 완전 대체) ───────────────────────
+def result_section(label: str, content_fn, *args, **kwargs):
+    """헤더 + 내용을 하나의 styled div로 렌더링"""
+    st.markdown(
+        f'<div class="result-section">',
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        f'<div style="padding:.65rem 1rem .5rem;font-size:.9rem;font-weight:600;' +
+        f'color:#111827;">{label}</div>',
+        unsafe_allow_html=True
+    )
+    content_fn(*args, **kwargs)
+    st.markdown('</div>', unsafe_allow_html=True)
+
 # 질문 카드 렌더러
 # ═══════════════════════════════════════════════════════════════════
 def render_question_cards(questions: dict):
@@ -1047,8 +1052,9 @@ def main():
                     book = pdf_title
                     custom_summary = st.session_state["custom_summary"]
                     st.session_state["active_custom_summary"] = custom_summary
-                    with st.expander("📋  분석된 내용 확인", expanded=True):
-                        st.markdown(custom_summary)
+                    st.markdown('<div class="result-section"><div style="padding:.65rem 1rem .5rem;font-size:.9rem;font-weight:600;color:#111827;">📋  분석된 내용 확인</div>', unsafe_allow_html=True)
+                    st.markdown(custom_summary)
+                    st.markdown('</div>', unsafe_allow_html=True)
 
         # ── 🌐 웹 검색 ──
         elif input_method == "🌐 웹 검색":
@@ -1072,8 +1078,9 @@ def main():
                     book = search_title
                     custom_summary = st.session_state["web_search_result"]
                     st.session_state["active_custom_summary"] = custom_summary
-                    with st.expander("📋  검색된 책 정보", expanded=True):
-                        st.markdown(custom_summary)
+                    st.markdown('<div class="result-section"><div style="padding:.65rem 1rem .5rem;font-size:.9rem;font-weight:600;color:#111827;">📋  검색된 책 정보</div>', unsafe_allow_html=True)
+                    st.markdown(custom_summary)
+                    st.markdown('</div>', unsafe_allow_html=True)
                     st.success("✅ 이 정보로 수업안을 만듭니다.")
 
     # ── 최종 book/book_info 결정: active_tab 기준 ──────────────────
@@ -1158,20 +1165,24 @@ def main():
             st.markdown('<div class="section-title">생성 결과</div>', unsafe_allow_html=True)
 
             if "questions" in st.session_state and st.session_state["questions"]:
-                with st.expander("❓  질문 카드", expanded=True):
-                    render_question_cards(st.session_state["questions"])
+                st.markdown('<div class="result-section"><div style="padding:.65rem 1rem .5rem;font-size:.9rem;font-weight:600;color:#111827;">❓  질문 카드</div>', unsafe_allow_html=True)
+                render_question_cards(st.session_state["questions"])
+                st.markdown('</div>', unsafe_allow_html=True)
 
             if "activities" in st.session_state:
-                with st.expander("🎨  활동 생성"):
-                    st.markdown(st.session_state["activities"])
+                st.markdown('<div class="result-section"><div style="padding:.65rem 1rem .5rem;font-size:.9rem;font-weight:600;color:#111827;">🎨  활동 생성</div>', unsafe_allow_html=True)
+                st.markdown(st.session_state["activities"])
+                st.markdown('</div>', unsafe_allow_html=True)
 
             if "lessonplan" in st.session_state:
-                with st.expander("🗒️  지도안"):
-                    st.markdown(st.session_state["lessonplan"])
+                st.markdown('<div class="result-section"><div style="padding:.65rem 1rem .5rem;font-size:.9rem;font-weight:600;color:#111827;">🗒️  지도안</div>', unsafe_allow_html=True)
+                st.markdown(st.session_state["lessonplan"])
+                st.markdown('</div>', unsafe_allow_html=True)
 
             if "eval_parent" in st.session_state:
-                with st.expander("⭐  평가 & 학부모 안내문"):
-                    st.markdown(st.session_state["eval_parent"])
+                st.markdown('<div class="result-section"><div style="padding:.65rem 1rem .5rem;font-size:.9rem;font-weight:600;color:#111827;">⭐  평가 & 학부모 안내문</div>', unsafe_allow_html=True)
+                st.markdown(st.session_state["eval_parent"])
+                st.markdown('</div>', unsafe_allow_html=True)
 
             # ── 다운로드 & PPT ───────────────────────────────────
             st.markdown("<br>", unsafe_allow_html=True)
