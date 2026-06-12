@@ -288,7 +288,7 @@ html, body,
   margin-left: auto;
 }
 
-/* ── 섹션 카드 ── */
+/* ── 섹션 카드 (공통) ── */
 .section-card {
   background: white;
   border-radius: 12px;
@@ -296,6 +296,11 @@ html, body,
   padding: 1.2rem 1.4rem;
   margin-bottom: 1rem;
 }
+/* ── 섹션별 파스텔 배경 ── */
+.card-blue   { background: #EFF6FF; border-color: #BFDBFE; }
+.card-purple { background: #F5F3FF; border-color: #DDD6FE; }
+.card-green  { background: #F0FDF4; border-color: #BBF7D0; }
+.card-amber  { background: #FFFBEB; border-color: #FDE68A; }
 .section-title {
   font-size: .72rem;
   font-weight: 700;
@@ -444,6 +449,14 @@ html, body,
   font-weight: 600 !important;
   color: #111827 !important;
   padding: .65rem 1rem !important;
+}
+/* expander: svg 아이콘 및 arrow 텍스트 제거 */
+[data-testid="stExpander"] summary svg { display: none !important; }
+[data-testid="stExpander"] summary [data-testid="stExpanderToggleIcon"] { display: none !important; }
+[data-testid="stExpander"] summary > div:last-child { display: none !important; }
+[data-testid="stExpander"] summary {
+  display: flex !important;
+  align-items: center !important;
 }
 
 /* ── 메인 버튼 ── */
@@ -866,6 +879,7 @@ def main():
 
     # ── STEP 1: 수업 조건 ──────────────────────────────────────────
     st.markdown('<div class="section-title">수업 조건</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-card card-blue">', unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns(3)
     with c1: grade = st.selectbox("학년", ["유치원","초등 1학년","초등 2학년","초등 3학년",
@@ -880,9 +894,11 @@ def main():
         placeholder="예: 1학년 입학 초기, 친구 관계가 서툰 편, 글쓰기 부담이 큼 등",
         height=64, label_visibility="collapsed")
     st.caption("📝 학생 특성 (선택)")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # ── STEP 2: 그림책 선택 ────────────────────────────────────────
     st.markdown('<div class="section-title">그림책 선택</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-card card-purple">', unsafe_allow_html=True)
 
     book_tab1, book_tab2, book_tab3 = st.tabs(["🤖 AI 추천", "📚 DB에서 찾기", "✏️ 직접 입력"])
 
@@ -1035,7 +1051,7 @@ def main():
                     book = pdf_title
                     custom_summary = st.session_state["custom_summary"]
                     st.session_state["active_custom_summary"] = custom_summary
-                    with st.expander("📋 분석된 내용 확인", expanded=True):
+                    with st.expander("📋  분석된 내용 확인", expanded=True):
                         st.markdown(custom_summary)
 
         # ── 🌐 웹 검색 ──
@@ -1060,7 +1076,7 @@ def main():
                     book = search_title
                     custom_summary = st.session_state["web_search_result"]
                     st.session_state["active_custom_summary"] = custom_summary
-                    with st.expander("📋 검색된 책 정보", expanded=True):
+                    with st.expander("📋  검색된 책 정보", expanded=True):
                         st.markdown(custom_summary)
                     st.success("✅ 이 정보로 수업안을 만듭니다.")
 
@@ -1099,11 +1115,15 @@ def main():
         else:
             st.info(f"📖 선택된 책: **{book}**")
 
+    st.markdown('</div>', unsafe_allow_html=True)
+
     # ── STEP 3: 단계별 생성 ────────────────────────────────────────
     st.markdown('<div class="section-title">단계별 생성</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-card card-green">', unsafe_allow_html=True)
 
     if not book:
         st.info("책을 먼저 선택해 주세요.")
+        st.markdown('</div>', unsafe_allow_html=True)
     else:
         # PDF/웹검색으로 얻은 책 정보
         _ctx_extra = st.session_state.get("active_custom_summary", "")
@@ -1134,6 +1154,7 @@ def main():
                     ev = gen_eval_parent(grade, theme, book, _ctx_extra)
                 st.session_state["eval_parent"] = ev
 
+        st.markdown('</div>', unsafe_allow_html=True)
         # ── 결과 ──────────────────────────────────────────────────
         has_any = any(k in st.session_state for k in
                       ["questions","activities","lessonplan","eval_parent"])
@@ -1142,19 +1163,19 @@ def main():
             st.markdown('<div class="section-title">생성 결과</div>', unsafe_allow_html=True)
 
             if "questions" in st.session_state and st.session_state["questions"]:
-                with st.expander("❓ 질문 카드", expanded=True):
+                with st.expander("❓  질문 카드", expanded=True):
                     render_question_cards(st.session_state["questions"])
 
             if "activities" in st.session_state:
-                with st.expander("🎨 활동 생성"):
+                with st.expander("🎨  활동 생성"):
                     st.markdown(st.session_state["activities"])
 
             if "lessonplan" in st.session_state:
-                with st.expander("🗒️ 지도안"):
+                with st.expander("🗒️  지도안"):
                     st.markdown(st.session_state["lessonplan"])
 
             if "eval_parent" in st.session_state:
-                with st.expander("⭐ 평가 & 학부모 안내문"):
+                with st.expander("⭐  평가 & 학부모 안내문"):
                     st.markdown(st.session_state["eval_parent"])
 
             # ── 다운로드 & PPT ───────────────────────────────────
