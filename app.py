@@ -422,6 +422,21 @@ html, body,
 .q-card .qt.삶연결{ background: #ECFDF5; color: #065F46; }
 .q-card .qtext { font-size: .82rem; color: #374151; line-height: 1.5; }
 
+/* ── 지도안 테이블 ── */
+.lp-table { width:100%; border-collapse:collapse; margin-bottom:14px; font-size:.82rem; }
+.lp-table th {
+  padding:8px 10px; font-size:.72rem; font-weight:700;
+  text-align:center; background:#F9FAFB; color:#374151; border:1px solid #E5E7EB;
+}
+.lp-table td { padding:9px 11px; border:1px solid #E5E7EB; vertical-align:top; line-height:1.6; }
+.lp-stage {
+  font-size:.72rem; font-weight:700; text-align:center;
+  border-radius:6px; padding:3px 8px; display:inline-block; white-space:nowrap;
+}
+.lp-dur { font-size:.72rem; color:#6B7280; text-align:center; }
+.lp-teacher { color:#1D4ED8; }
+.lp-student { color:#166534; }
+.lp-note   { color:#92400E; background:#FFFBEB; border-radius:6px; padding:4px 7px; font-size:.78rem; }
 /* ── 활동 카드 ── */
 .act-card {
   background: white;
@@ -690,14 +705,29 @@ def gen_activities(grade, theme, book, lesson_time, student_context, book_ctx_ex
 def gen_lessonplan(grade, theme, book, lesson_time, student_context, book_ctx_extra: str = "") -> str:
     extra = f"\n[교사 제공 책 정보]\n{book_ctx_extra}" if book_ctx_extra else ""
     return chat(
-        "초등 수업 설계 전문가입니다. 한국어로 작성합니다.",
+        "초등 수업 설계 전문가입니다. 반드시 JSON으로만 응답하세요.",
         f"""학년:{grade} / 주제:{theme} / 그림책:{book} / 시간:{lesson_time}
 학생특성:{student_context or '없음'}{extra}
 
-도입/전개/정리 단계 지도안을 표 형식으로 작성하세요.
-| 단계 | 시간 | 교사 활동 | 학생 활동 | 유의점 |
-각 단계별로 2~3행씩 작성합니다.""",
-        max_tokens=1000,
+도입/전개/정리 3단계 지도안을 아래 JSON 형식으로만 작성하세요.
+각 단계는 2~3개의 행(row)을 가집니다.
+
+[
+  {{
+    "stage": "도입",
+    "duration": "10분",
+    "rows": [
+      {{
+        "teacher": "교사 활동 설명",
+        "student": "학생 활동 설명",
+        "note": "유의점"
+      }}
+    ]
+  }},
+  {{ "stage": "전개", "duration": "25분", "rows": [...] }},
+  {{ "stage": "정리", "duration": "5분",  "rows": [...] }}
+]""",
+        max_tokens=1200,
     )
 
 # ── 평가+안내문 생성 ──────────────────────────────────────────────
@@ -920,6 +950,67 @@ def result_section(label: str, content_fn, *args, **kwargs):
     )
     content_fn(*args, **kwargs)
     st.markdown('</div>', unsafe_allow_html=True)
+
+# ── 지도안 테이블 렌더러 ─────────────────────────────────────────
+def render_lessonplan(raw: str):
+    """gen_lessonplan JSON → 테이블 카드 UI"""
+    import re as _re
+    try:
+        m = _re.search(r'\[.*\]', raw, _re.DOTALL)
+        stages = json.loads(m.group()) if m else []
+    except Exception:
+        st.markdown(raw)
+        return
+
+    stage_cfg = {
+        "도입": ("#3B82F6", "#EFF6FF"),
+        "전개": ("#8B5CF6", "#F5F3FF"),
+        "정리": ("#10B981", "#F0FDF4"),
+    }
+
+    header = """<table class="lp-table">
+      <thead><tr>
+        <th style="width:7%;">단계</th>
+        <th style="width:7%;">시간</th>
+        <th style="width:30%;">🧑‍🏫 교사 활동</th>
+        <th style="width:30%;">🙋 학생 활동</th>
+        <th style="width:26%;">💡 유의점</th>
+      </tr></thead><tbody>"""
+    rows_html = ""
+
+    for stage in stages:
+        name = stage.get("stage", "")
+        dur  = stage.get("duration", "")
+        rows = stage.get("rows", [])
+        color, bg = stage_cfg.get(name, ("#6B7280", "#F9FAFB"))
+        rcount = len(rows)
+
+        for i, row in enumerate(rows):
+            teacher = row.get("teacher", "")
+            student = row.get("student", "")
+            note    = row.get("note", "")
+            note_html = f'<span class="lp-note">{note}</span>' if note else ""
+
+            if i == 0:
+                rows_html += f"""<tr>
+  <td rowspan="{rcount}" style="text-align:center;background:{bg};border-color:#E5E7EB;">
+    <span class="lp-stage" style="background:{color};color:white;">{name}</span>
+  </td>
+  <td rowspan="{rcount}" class="lp-dur">{dur}</td>
+  <td class="lp-teacher">{teacher}</td>
+  <td class="lp-student">{student}</td>
+  <td>{note_html}</td>
+</tr>"""
+            else:
+                rows_html += f"""<tr>
+  <td class="lp-teacher">{teacher}</td>
+  <td class="lp-student">{student}</td>
+  <td>{note_html}</td>
+</tr>"""
+
+    footer = "</tbody></table>"
+    st.markdown(header + rows_html + footer, unsafe_allow_html=True)
+
 
 # ── 활동 카드 렌더러 ─────────────────────────────────────────────
 def render_activities(raw: str):
@@ -1387,7 +1478,7 @@ def main():
 
             if "lessonplan" in st.session_state:
                 st.markdown('<div class="result-section"><div style="padding:.65rem 1rem .5rem;font-size:.9rem;font-weight:600;color:#111827;">🗒️  지도안</div>', unsafe_allow_html=True)
-                st.markdown(st.session_state["lessonplan"])
+                render_lessonplan(st.session_state["lessonplan"])
                 st.markdown('</div>', unsafe_allow_html=True)
 
             if "eval_parent" in st.session_state:
