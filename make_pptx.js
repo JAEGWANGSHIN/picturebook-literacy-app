@@ -187,34 +187,40 @@ qTypes.forEach(({key, label, color, tc, icon}) => {
   });
   s.addText("⭐ 평가", { x:0.3, y:0.2, w:2.5, h:0.55, fontSize:13, bold:true, color:"FFFFFF", align:"center", fontFace:"나눔고딕" });
 
-  const evals = data.evaluations || [
-    {criterion:"그림책 내용 이해", good:"내용을 정확히 이해하고 설명한다", ok:"대략적인 내용을 이해한다", need:"교사의 도움이 필요하다"},
-    {criterion:"질문 생성 능력", good:"다양한 유형의 질문을 스스로 만든다", ok:"교사 도움으로 질문을 만든다", need:"질문 만들기에 어려움을 느낀다"},
-  ];
-  const header = ["평가 기준", "충분", "보통", "노력 필요"];
-  const hColors = [DARK, GRN2, YLW2, "C62828"];
-  const hBGs = [PALE, GRN, YLW, PNK];
-  const colX = [0.3, 2.8, 5.4, 7.7];
-  const colW = [2.4, 2.5, 2.2, 2.2];
+  // data.evaluations = [{area, good, ok, needs}, ...]
+  const evals = (data.evaluations && data.evaluations.length > 0)
+    ? data.evaluations
+    : [
+        {area:"그림책 내용 이해", good:"내용을 정확히 이해하고 설명한다", ok:"대략적인 내용을 이해한다", needs:"교사의 도움을 받아 이해할 수 있다"},
+        {area:"질문 생성 능력",   good:"다양한 질문을 스스로 만든다",     ok:"교사 도움으로 질문을 만든다", needs:"교사와 함께 질문을 만들 수 있다"},
+      ];
+
+  const header   = ["평가 기준", "✅ 잘함", "🟡 보통", "🔵 노력 필요"];
+  const hColors  = [DARK,        GRN2,      YLW2,       BLU2];
+  const hBGs     = [PALE,        GRN,       YLW,        BLU];
+  const colX     = [0.3, 2.8, 5.4, 7.7];
+  const colW     = [2.4, 2.5, 2.2, 2.2];
+  const rowH     = (4.0 / Math.min(evals.length, 4));  // 최대 4행 기준 높이 분배
 
   header.forEach((h, i) => {
     s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
       x:colX[i], y:0.95, w:colW[i], h:0.38,
       fill:{color:hBGs[i]}, rectRadius:0.06, line:{color:hColors[i],width:0.5}
     });
-    s.addText(h, { x:colX[i], y:0.95, w:colW[i], h:0.38, fontSize:11, bold:true, color:hColors[i], align:"center", fontFace:"나눔고딕" });
+    s.addText(h, { x:colX[i], y:0.95, w:colW[i], h:0.38, fontSize:10, bold:true, color:hColors[i], align:"center", fontFace:"나눔고딕" });
   });
 
-  evals.slice(0,3).forEach((ev, i) => {
-    const y = 1.45 + i * 1.3;
-    [ev.criterion, ev.good, ev.ok, ev.need].forEach((txt, j) => {
+  evals.slice(0, 4).forEach((ev, i) => {
+    const y = 1.42 + i * rowH;
+    const vals = [ev.area || ev.criterion || "", ev.good || "", ev.ok || "", ev.needs || ev.need || ""];
+    vals.forEach((cellTxt, j) => {
       s.addShape(pres.shapes.RECTANGLE, {
-        x:colX[j], y, w:colW[j], h:1.15,
+        x:colX[j], y, w:colW[j], h:rowH - 0.06,
         fill:{color: j===0 ? PALE : "FFFFFF"}, line:{color:"E8C9A0",width:0.5}
       });
-      s.addText(txt, {
-        x:colX[j]+0.1, y:y+0.05, w:colW[j]-0.2, h:1.05,
-        fontSize:10, color:j===0?DARK:MID, wrap:true, valign:"middle", fontFace:"나눔고딕"
+      s.addText(cellTxt, {
+        x:colX[j]+0.1, y:y+0.05, w:colW[j]-0.2, h:rowH-0.16,
+        fontSize:9.5, color:j===0?DARK:MID, wrap:true, valign:"middle", fontFace:"나눔고딕"
       });
     });
   });
