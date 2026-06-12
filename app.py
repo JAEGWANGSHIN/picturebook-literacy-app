@@ -249,131 +249,257 @@ def db_all_themes():
 # ═══════════════════════════════════════════════════════════════════
 CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@700&family=Nanum+Gothic:wght@400;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
 
+/* ── 전체 리셋 ── */
 html, body,
 [data-testid="stAppViewContainer"],
-[data-testid="stAppViewContainer"] > .main { background-color: #FFF9F0 !important; }
+[data-testid="stAppViewContainer"] > .main {
+  background-color: #F7F8FA !important;
+  font-family: 'Noto Sans KR', sans-serif !important;
+}
 [data-testid="stSidebar"] { display: none !important; }
-.main .block-container { max-width: 740px !important; padding: 1.8rem 1.4rem 3rem !important; }
+.main .block-container {
+  max-width: 800px !important;
+  padding: 0 1.2rem 3rem !important;
+}
+* { font-family: 'Noto Sans KR', sans-serif !important; }
 
-.app-header { text-align:center; padding:1.6rem 0 1.2rem; }
-.app-icon   { font-size:2.4rem; display:block; margin-bottom:6px;
-              animation:bob 3s ease-in-out infinite; }
-@keyframes bob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
-.app-title  { font-family:'Gaegu',cursive !important; font-size:clamp(1.6rem,5vw,2.2rem) !important;
-              color:#3D2B1F !important; line-height:1.2 !important; margin:0 0 .3rem !important; }
-.app-sub    { font-size:.88rem; color:#7D5A4A; font-weight:700 !important; }
+/* ── 상단 헤더바 ── */
+.top-bar {
+  background: #1A1A2E;
+  color: white;
+  padding: .9rem 1.6rem;
+  margin: 0 -1.2rem 1.6rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.top-bar-icon { font-size: 1.3rem; }
+.top-bar-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -.3px;
+}
+.top-bar-sub {
+  font-size: .78rem;
+  color: #A0A8C0;
+  margin-left: auto;
+}
 
-.divider { height:2px;
-  background:repeating-linear-gradient(90deg,#FFCC80 0,#FFCC80 8px,transparent 8px,transparent 14px);
-  border:none; margin:1.4rem 0; }
+/* ── 섹션 카드 ── */
+.section-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #E8EAF0;
+  padding: 1.2rem 1.4rem;
+  margin-bottom: 1rem;
+}
+.section-title {
+  font-size: .72rem;
+  font-weight: 700;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  margin-bottom: .9rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px; height: 14px;
+  background: #1A1A2E;
+  border-radius: 2px;
+}
 
-.sec-label { font-family:'Gaegu',cursive !important; font-size:1.08rem !important;
-             color:#5D3A1A !important; font-weight:700 !important;
-             margin:0 0 .7rem !important; display:flex; align-items:center; gap:5px; }
+/* ── 구분선 ── */
+.divider {
+  height: 1px;
+  background: #E8EAF0;
+  border: none;
+  margin: 1rem 0;
+}
 
-/* 폼 */
+/* 이전 호환용 */
+.sec-label {
+  font-size: .72rem !important;
+  font-weight: 700 !important;
+  color: #6B7280 !important;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  margin: 0 0 .7rem !important;
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── 폼 ── */
 [data-testid="stSelectbox"] > div > div,
 [data-testid="stTextInput"] > div > div > input,
 [data-testid="stTextArea"] > div > div > textarea {
-  border-radius:10px !important; border:2px solid #E8C9A0 !important;
-  background:#FFFDF7 !important; font-family:'Nanum Gothic',sans-serif !important; }
+  border-radius: 8px !important;
+  border: 1px solid #D1D5DB !important;
+  background: white !important;
+  font-size: .88rem !important;
+}
 [data-testid="stSelectbox"] > div > div:focus-within,
 [data-testid="stTextInput"] > div > div > input:focus,
 [data-testid="stTextArea"] > div > div > textarea:focus {
-  border-color:#FF7043 !important; box-shadow:0 0 0 3px #FF704320 !important; }
+  border-color: #1A1A2E !important;
+  box-shadow: 0 0 0 2px #1A1A2E18 !important;
+}
 
-/* 책 카드 */
-.book-card { background:linear-gradient(135deg,#FFF8E7,#FFF0F5);
-             border:2px solid #FFCC80; border-radius:12px;
-             padding:.85rem 1rem; margin:.4rem 0;
-             display:flex; gap:10px; align-items:flex-start; }
-.bc-icon  { font-size:1.5rem; flex-shrink:0; }
-.bc-title { font-weight:800; color:#3D2B1F; font-size:.88rem; }
-.bc-meta  { color:#9E8070; font-size:.76rem; margin-top:2px; line-height:1.4; }
-.bc-tags  { margin-top:4px; display:flex; flex-wrap:wrap; gap:3px; }
-.tag { background:#E8F5E9; color:#1B5E20; border:1px solid #A5D6A7;
-       border-radius:20px; padding:1px 7px; font-size:.67rem; font-weight:800; }
+/* ── 책 카드 ── */
+.book-card {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: .8rem 1rem;
+  margin: .4rem 0;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.book-card.selected {
+  background: #EEF2FF;
+  border-color: #6366F1;
+}
+.bc-icon  { font-size: 1.3rem; flex-shrink: 0; }
+.bc-title { font-weight: 700; color: #111827; font-size: .88rem; }
+.bc-meta  { color: #6B7280; font-size: .75rem; margin-top: 2px; line-height: 1.45; }
+.bc-tags  { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px; }
+.tag {
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #E5E7EB;
+  border-radius: 4px;
+  padding: 1px 7px;
+  font-size: .67rem;
+  font-weight: 500;
+}
 
-/* AI 추천 칩 */
-.rec-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:.8rem; }
+/* ── AI 추천 칩 ── */
+.rec-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: .8rem; }
 .rec-chip {
-  background:white; border:2px solid #E8C9A0; border-radius:50px;
-  padding:6px 14px; font-size:.82rem; font-weight:700; color:#5D3A1A;
-  cursor:pointer; transition:border-color .15s,background .15s;
-  display:flex; align-items:center; gap:5px; }
-.rec-chip:hover { border-color:#FF7043; background:#FFF3EE; }
-.rec-chip .rn { font-weight:800; color:#FF7043; }
+  background: white;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: .82rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.rec-chip:hover { border-color: #6366F1; background: #EEF2FF; color: #4338CA; }
+.rec-chip .rn { font-weight: 700; color: #6366F1; }
 
-/* 질문 카드 그리드 */
-.q-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
-          gap:10px; margin-top:.6rem; }
-.q-card { background:white; border:2px solid #F0D9B8; border-radius:12px;
-          padding:.8rem .9rem; transition:transform .15s,box-shadow .15s; }
-.q-card:hover { transform:translateY(-3px); box-shadow:0 6px 16px #00000014; }
-.q-card .qt  { font-size:.67rem; font-weight:800; border-radius:20px;
-               padding:2px 8px; display:inline-block; margin-bottom:5px; }
-.q-card .qt.사실  { background:#E3F2FD; color:#1565C0; }
-.q-card .qt.추론  { background:#F3E5F5; color:#6A1B9A; }
-.q-card .qt.평가  { background:#E8F5E9; color:#1B5E20; }
-.q-card .qt.감정  { background:#FCE4EC; color:#880E4F; }
-.q-card .qt.작가  { background:#FFF3E0; color:#E65100; }
-.q-card .qt.삶연결{ background:#F1F8E9; color:#33691E; }
-.q-card .qtext { font-size:.82rem; color:#3D2B1F; line-height:1.5; }
+/* ── 질문 카드 ── */
+.q-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+  margin-top: .6rem;
+}
+.q-card {
+  background: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: .75rem .85rem;
+  transition: box-shadow .15s;
+}
+.q-card:hover { box-shadow: 0 4px 12px #0000000D; }
+.q-card .qt {
+  font-size: .65rem;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 2px 7px;
+  display: inline-block;
+  margin-bottom: 5px;
+}
+.q-card .qt.사실  { background: #EFF6FF; color: #1D4ED8; }
+.q-card .qt.추론  { background: #F5F3FF; color: #6D28D9; }
+.q-card .qt.평가  { background: #F0FDF4; color: #166534; }
+.q-card .qt.감정  { background: #FFF1F2; color: #9F1239; }
+.q-card .qt.작가  { background: #FFF7ED; color: #C2410C; }
+.q-card .qt.삶연결{ background: #ECFDF5; color: #065F46; }
+.q-card .qtext { font-size: .82rem; color: #374151; line-height: 1.5; }
 
-/* 단계 버튼 */
-.step-row { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:1rem 0; }
-.step-btn-wrap button {
-  border-radius:12px !important; font-family:'Gaegu',cursive !important;
-  font-size:.85rem !important; font-weight:700 !important; }
-
-/* 결과 아코디언 */
+/* ── 결과 아코디언 ── */
 [data-testid="stExpander"] {
-  background:white !important; border:2px solid #F0D9B8 !important;
-  border-radius:12px !important; margin-bottom:6px !important; }
-[data-testid="stExpander"]:hover { border-color:#FF7043 !important; }
+  background: white !important;
+  border: 1px solid #E5E7EB !important;
+  border-radius: 10px !important;
+  margin-bottom: 6px !important;
+}
+[data-testid="stExpander"]:hover { border-color: #9CA3AF !important; }
 [data-testid="stExpander"] summary {
-  font-family:'Gaegu',cursive !important; font-size:.98rem !important;
-  font-weight:700 !important; color:#3D2B1F !important; padding:.55rem .9rem !important; }
+  font-size: .9rem !important;
+  font-weight: 600 !important;
+  color: #111827 !important;
+  padding: .65rem 1rem !important;
+}
 
-/* 메인 버튼 */
+/* ── 메인 버튼 ── */
 [data-testid="baseButton-primary"] {
-  background:#FF7043 !important; border:none !important; border-radius:50px !important;
-  font-family:'Gaegu',cursive !important; font-size:1.05rem !important;
-  font-weight:700 !important; color:white !important;
-  box-shadow:0 4px 0 #BF360C !important; letter-spacing:1px;
-  transition:transform .1s,box-shadow .1s !important; }
-[data-testid="baseButton-primary"]:hover  { transform:translateY(-2px) !important; box-shadow:0 6px 0 #BF360C !important; }
-[data-testid="baseButton-primary"]:active { transform:translateY(2px) !important;  box-shadow:0 2px 0 #BF360C !important; }
+  background: #1A1A2E !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: .9rem !important;
+  font-weight: 600 !important;
+  color: white !important;
+  transition: opacity .15s !important;
+  letter-spacing: -.2px;
+}
+[data-testid="baseButton-primary"]:hover { opacity: .88 !important; }
 [data-testid="baseButton-secondary"] {
-  border-radius:50px !important; border:2px solid #E8C9A0 !important;
-  background:white !important; font-weight:700 !important;
-  transition:border-color .15s !important; }
-[data-testid="baseButton-secondary"]:hover { border-color:#FF7043 !important; }
+  border-radius: 8px !important;
+  border: 1px solid #D1D5DB !important;
+  background: white !important;
+  font-size: .88rem !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+  transition: border-color .15s, background .15s !important;
+}
+[data-testid="baseButton-secondary"]:hover {
+  border-color: #6B7280 !important;
+  background: #F9FAFB !important;
+}
 
-/* 탭 */
+/* ── 탭 ── */
 [data-testid="stTabs"] [role="tab"] {
-  font-family:'Gaegu',cursive !important; font-size:.95rem !important;
-  font-weight:700 !important; border-radius:10px 10px 0 0 !important; }
+  font-size: .88rem !important;
+  font-weight: 500 !important;
+  color: #6B7280 !important;
+  padding: .5rem .9rem !important;
+}
 [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
-  color:#BF360C !important; border-bottom:3px solid #FF7043 !important; }
+  color: #111827 !important;
+  font-weight: 700 !important;
+  border-bottom: 2px solid #1A1A2E !important;
+}
 
-/* PPT 버튼 특별 색 */
+/* ── PPT 버튼 ── */
 .ppt-wrap [data-testid="baseButton-secondary"] {
-  background:linear-gradient(135deg,#E8F5E9,#C8E6C9) !important;
-  border:2px solid #81C784 !important; color:#1B5E20 !important; }
+  background: #F0FDF4 !important;
+  border: 1px solid #86EFAC !important;
+  color: #166534 !important;
+}
 
-/* 반응형 */
+/* ── 반응형 ── */
 @media(max-width:600px){
-  .main .block-container{padding:1rem .8rem 2rem !important;}
-  .app-title{font-size:1.4rem !important;}
-  .q-grid{grid-template-columns:1fr;}
-  .step-row{grid-template-columns:1fr 1fr;}
+  .main .block-container { padding: 0 .6rem 2rem !important; }
+  .top-bar { margin: 0 -.6rem 1.2rem; padding: .8rem 1rem; }
+  .q-grid { grid-template-columns: 1fr; }
 }
 </style>
 """
-
 PPTX_SCRIPT = os.path.join(os.path.dirname(__file__), "make_pptx.js")
 
 # ═══════════════════════════════════════════════════════════════════
@@ -731,17 +857,15 @@ def main():
 
     # ── 헤더 ──
     st.markdown("""
-    <div class="app-header">
-      <span class="app-icon">📚</span>
-      <div class="app-title">AI 그림책 질문수업 설계기</div>
-      <p class="app-sub">학년 · 주제 · 그림책을 고르면 수업 초안을 단계별로 만들어 드려요</p>
+    <div class="top-bar">
+      <span class="top-bar-icon">📚</span>
+      <span class="top-bar-title">AI 그림책 질문수업 설계기</span>
+      <span class="top-bar-sub">초기 문해력 수업 코파일럿</span>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-
     # ── STEP 1: 수업 조건 ──────────────────────────────────────────
-    st.markdown('<div class="sec-label">① 수업 조건</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">수업 조건</div>', unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns(3)
     with c1: grade = st.selectbox("학년", ["유치원","초등 1학년","초등 2학년","초등 3학년",
@@ -758,8 +882,7 @@ def main():
     st.caption("📝 학생 특성 (선택)")
 
     # ── STEP 2: 그림책 선택 ────────────────────────────────────────
-    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sec-label">② 그림책 선택</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">그림책 선택</div>', unsafe_allow_html=True)
 
     book_tab1, book_tab2, book_tab3 = st.tabs(["🤖 AI 추천", "📚 DB에서 찾기", "✏️ 직접 입력"])
 
@@ -977,8 +1100,7 @@ def main():
             st.info(f"📖 선택된 책: **{book}**")
 
     # ── STEP 3: 단계별 생성 ────────────────────────────────────────
-    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sec-label">③ 단계별 생성</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">단계별 생성</div>', unsafe_allow_html=True)
 
     if not book:
         st.info("책을 먼저 선택해 주세요.")
@@ -1017,7 +1139,7 @@ def main():
                       ["questions","activities","lessonplan","eval_parent"])
         if has_any:
             st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="sec-label">④ 결과</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">생성 결과</div>', unsafe_allow_html=True)
 
             if "questions" in st.session_state and st.session_state["questions"]:
                 with st.expander("❓ 질문 카드", expanded=True):
