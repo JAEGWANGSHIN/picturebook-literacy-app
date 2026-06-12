@@ -422,6 +422,76 @@ html, body,
 .q-card .qt.삶연결{ background: #ECFDF5; color: #065F46; }
 .q-card .qtext { font-size: .82rem; color: #374151; line-height: 1.5; }
 
+/* ── 활동 카드 ── */
+.act-card {
+  background: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 1.1rem 1.2rem;
+  margin-bottom: 10px;
+}
+.act-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: .7rem;
+  padding-bottom: .6rem;
+  border-bottom: 1px solid #F3F4F6;
+}
+.act-step-badge {
+  background: #1A1A2E;
+  color: white;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: .72rem;
+  font-weight: 700;
+}
+.act-title { font-size: 1rem; font-weight: 700; color: #111827; }
+.act-duration {
+  margin-left: auto;
+  background: #F0FDF4;
+  color: #166534;
+  border: 1px solid #BBF7D0;
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: .72rem;
+  font-weight: 600;
+}
+.act-row { display: flex; gap: 6px; margin-bottom: 5px; align-items: flex-start; }
+.act-label {
+  font-size: .7rem; font-weight: 700; color: #6B7280;
+  min-width: 52px; padding-top: 1px;
+}
+.act-val { font-size: .83rem; color: #374151; line-height: 1.5; }
+.act-question {
+  background: #EFF6FF;
+  border-radius: 8px;
+  padding: .55rem .8rem;
+  margin-top: .6rem;
+  font-size: .83rem;
+  color: #1D4ED8;
+  font-style: italic;
+}
+/* ── 평가 카드 ── */
+.eval-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+  font-size: .82rem;
+}
+.eval-table th {
+  padding: 7px 10px;
+  font-weight: 700;
+  font-size: .72rem;
+  text-align: left;
+}
+.eval-table td { padding: 8px 10px; border-bottom: 1px solid #F3F4F6; vertical-align: top; }
+.eval-table tr:last-child td { border-bottom: none; }
+.th-area { background: #F9FAFB; color: #374151; width: 20%; }
+.th-good { background: #F0FDF4; color: #166534; width: 27%; }
+.th-ok   { background: #FFFBEB; color: #92400E; width: 27%; }
+.th-need { background: #EFF6FF; color: #1D4ED8; width: 26%; }
+.td-area { background: #F9FAFB; font-weight: 600; color: #374151; }
 /* ── 결과 섹션 (커스텀 — expander 미사용) ── */
 .result-section {
   background: white;
@@ -593,22 +663,26 @@ def gen_questions(grade, theme, book, book_info, book_ctx_extra: str = "") -> di
 def gen_activities(grade, theme, book, lesson_time, student_context, book_ctx_extra: str = "") -> str:
     extra = f"\n[교사 제공 책 정보]\n{book_ctx_extra}" if book_ctx_extra else ""
     return chat(
-        "초등 수업 설계 전문가입니다. 한국어로 작성합니다.",
+        "초등 수업 설계 전문가입니다. 반드시 JSON으로만 응답하세요.",
         f"""학년:{grade} / 주제:{theme} / 그림책:{book} / 시간:{lesson_time}
 학생특성:{student_context or '없음'}{extra}
 
-아래 형식으로 3가지 활동을 설계해 주세요.
-## 활동 1: 도입 (활동명)
-- 목표: ...
-- 준비물: ...
-- 진행: ...
-- 교사 발문: ...
+3가지 활동(도입/중심/정리)을 설계하세요. 총 수업 시간: {lesson_time}
 
-## 활동 2: 중심 (활동명)
-[같은 형식]
-
-## 활동 3: 정리 (활동명)
-[같은 형식]""",
+반드시 아래 JSON 형식으로만 응답하세요:
+[
+  {{
+    "step": "도입",
+    "title": "활동명",
+    "duration": "10분",
+    "goal": "활동 목표 한 문장",
+    "materials": "준비물 (쉼표 구분)",
+    "process": ["진행 순서 1", "진행 순서 2", "진행 순서 3"],
+    "question": "교사 핵심 발문"
+  }},
+  {{ "step": "중심", ... }},
+  {{ "step": "정리", ... }}
+]""",
         max_tokens=1400,
     )
 
@@ -630,30 +704,28 @@ def gen_lessonplan(grade, theme, book, lesson_time, student_context, book_ctx_ex
 def gen_eval_parent(grade, theme, book, book_ctx_extra: str = "") -> str:
     extra = f"\n[교사 제공 책 정보]\n{book_ctx_extra}" if book_ctx_extra else ""
     return chat(
-        "초등 수업 평가 및 학부모 소통 전문가입니다. 한국어로 작성합니다.",
+        "초등 수업 평가 전문가입니다. 반드시 JSON으로만 응답하세요.",
         f"""학년:{grade} / 주제:{theme} / 그림책:{book}{extra}
 
-아래 두 가지를 작성해 주세요.
+아래 JSON 형식으로 정확히 응답하세요.
+평가 서술 원칙: 모든 단계를 긍정적·성장 지향적으로 씁니다.
+"부족하다", "못한다", "어렵다" 같은 부정 표현 금지.
+노력 필요는 반드시 "교사·친구의 도움을 받아 ～할 수 있다" 형태로.
 
-## 평가 기준
-관찰 평가 기준 4개를 작성하세요.
-각 기준은 **잘함 / 보통 / 노력 필요** 3단계로 구분합니다.
+{{
+  "criteria": [
+    {{
+      "area": "평가 영역명",
+      "good": "잘함 서술 (스스로 능숙하게)",
+      "ok": "보통 서술 (대체로 할 수 있음)",
+      "needs": "노력 필요 서술 (도움을 받아 ~할 수 있다)"
+    }}
+  ],
+  "self_eval": ["자기평가 문항1", "자기평가 문항2", "자기평가 문항3"],
+  "parent_letter": "학부모 안내문 전체 텍스트 (그림책·주제 소개 + 가정 대화 질문 3개 + 따뜻한 어조)"
+}}
 
-[서술 원칙 — 반드시 지켜 주세요]
-- 모든 단계를 긍정적·성장 지향적 언어로 씁니다.
-- "부족하다", "못한다", "어렵다", "제한적이다" 같은 부정적 표현을 절대 쓰지 마세요.
-- 노력 필요 단계는 "교사·친구의 도움을 받아 ～할 수 있다" 형태로 씁니다.
-- 잘함은 스스로 능숙하게, 보통은 대체로 할 수 있음을 나타냅니다.
-
-예시 (의사소통 항목):
-- 잘함: 친구들과 자신의 생각을 적극적으로 나누고 다양한 방식으로 표현한다.
-- 보통: 친구들과 기본적인 의견을 나눌 수 있다.
-- 노력 필요: 교사나 친구의 도움을 받아 자신의 생각을 표현할 수 있다.
-
-학생 자기평가 문항 3개 (긍정적 질문으로)
-
-## 학부모 안내문
-가정에 보내는 안내문 (그림책·주제 소개, 가정 대화 질문 3개, 따뜻한 어조)""",
+criteria는 4개, self_eval은 3개.""",
         max_tokens=900,
     )
 
@@ -848,6 +920,105 @@ def result_section(label: str, content_fn, *args, **kwargs):
     )
     content_fn(*args, **kwargs)
     st.markdown('</div>', unsafe_allow_html=True)
+
+# ── 활동 카드 렌더러 ─────────────────────────────────────────────
+def render_activities(raw: str):
+    """gen_activities JSON → 카드 UI"""
+    import re as _re
+    try:
+        m = _re.search(r'\[.*\]', raw, _re.DOTALL)
+        acts = json.loads(m.group()) if m else []
+    except Exception:
+        st.markdown(raw)
+        return
+    step_colors = {"도입": "#3B82F6", "중심": "#8B5CF6", "정리": "#10B981"}
+    for act in acts:
+        color = step_colors.get(act.get("step",""), "#1A1A2E")
+        process_html = "".join(
+            f'<div style="display:flex;gap:6px;margin-bottom:3px;">'
+            f'<span style="min-width:18px;font-weight:700;color:{color};">{i+1}.</span>'
+            f'<span style="font-size:.82rem;color:#374151;line-height:1.5;">{p}</span></div>'
+            for i, p in enumerate(act.get("process", []))
+        )
+        st.markdown(f"""
+<div class="act-card">
+  <div class="act-header">
+    <span class="act-step-badge" style="background:{color};">{act.get('step','')}</span>
+    <span class="act-title">{act.get('title','')}</span>
+    <span class="act-duration">⏱ {act.get('duration','')}</span>
+  </div>
+  <div class="act-row">
+    <span class="act-label">🎯 목표</span>
+    <span class="act-val">{act.get('goal','')}</span>
+  </div>
+  <div class="act-row">
+    <span class="act-label">📦 준비물</span>
+    <span class="act-val">{act.get('materials','')}</span>
+  </div>
+  <div class="act-row">
+    <span class="act-label">📋 진행</span>
+    <div>{process_html}</div>
+  </div>
+  <div class="act-question">💬 "{act.get('question','')}"</div>
+</div>""", unsafe_allow_html=True)
+
+
+# ── 평가 카드 렌더러 ──────────────────────────────────────────────
+def render_eval_parent(raw: str):
+    """gen_eval_parent JSON → 카드 UI"""
+    import re as _re
+    try:
+        m = _re.search(r'\{.*\}', raw, _re.DOTALL)
+        data = json.loads(m.group()) if m else {}
+    except Exception:
+        st.markdown(raw)
+        return
+
+    criteria = data.get("criteria", [])
+    self_eval = data.get("self_eval", [])
+    parent_letter = data.get("parent_letter", "")
+
+    if criteria:
+        st.markdown("#### 📊 관찰 평가 기준")
+        rows = "".join(
+            f'''<tr>
+              <td class="td-area">{c.get("area","")}</td>
+              <td style="color:#166534;">{c.get("good","")}</td>
+              <td style="color:#92400E;">{c.get("ok","")}</td>
+              <td style="color:#1D4ED8;">{c.get("needs","")}</td>
+            </tr>'''
+            for c in criteria
+        )
+        st.markdown(f"""
+<table class="eval-table">
+  <thead><tr>
+    <th class="th-area">평가 영역</th>
+    <th class="th-good">✅ 잘함</th>
+    <th class="th-ok">🟡 보통</th>
+    <th class="th-need">🔵 노력 필요</th>
+  </tr></thead>
+  <tbody>{rows}</tbody>
+</table>""", unsafe_allow_html=True)
+
+    if self_eval:
+        st.markdown("#### ✏️ 학생 자기평가")
+        for i, q in enumerate(self_eval):
+            st.markdown(
+                f'<div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;'
+                f'padding:.55rem .9rem;margin-bottom:6px;font-size:.85rem;color:#374151;"'
+                f'><span style="font-weight:700;color:#6B7280;margin-right:8px;">{i+1}</span>{q}</div>',
+                unsafe_allow_html=True
+            )
+
+    if parent_letter:
+        st.markdown("#### 👨‍👩‍👧 학부모 안내문")
+        st.markdown(
+            f'<div style="background:#FFF9F0;border:1px solid #FDE68A;border-radius:10px;'
+            f'padding:1rem 1.1rem;font-size:.85rem;color:#374151;line-height:1.8;white-space:pre-wrap;"'
+            f'>{parent_letter}</div>',
+            unsafe_allow_html=True
+        )
+
 
 # 질문 카드 렌더러
 # ═══════════════════════════════════════════════════════════════════
@@ -1177,8 +1348,8 @@ def main():
             prog.progress(100, text="완료!")
             st.rerun()
 
-        # ── 보조: 개별 재생성 (작은 버튼) ─────────────────────────
-        with st.expander("🔄 개별 항목 재생성", expanded=False):
+        # ── 보조: 개별 재생성 ──────────────────────────────────────
+        if st.toggle("🔄 개별 항목 재생성", key="toggle_regen"):
             sc1, sc2, sc3, sc4 = st.columns(4)
             with sc1:
                 if st.button("❓ 질문 재생성", use_container_width=True, key="btn_q"):
@@ -1211,7 +1382,7 @@ def main():
 
             if "activities" in st.session_state:
                 st.markdown('<div class="result-section"><div style="padding:.65rem 1rem .5rem;font-size:.9rem;font-weight:600;color:#111827;">🎨  활동 생성</div>', unsafe_allow_html=True)
-                st.markdown(st.session_state["activities"])
+                render_activities(st.session_state["activities"])
                 st.markdown('</div>', unsafe_allow_html=True)
 
             if "lessonplan" in st.session_state:
@@ -1221,7 +1392,7 @@ def main():
 
             if "eval_parent" in st.session_state:
                 st.markdown('<div class="result-section"><div style="padding:.65rem 1rem .5rem;font-size:.9rem;font-weight:600;color:#111827;">⭐  평가 & 학부모 안내문</div>', unsafe_allow_html=True)
-                st.markdown(st.session_state["eval_parent"])
+                render_eval_parent(st.session_state["eval_parent"])
                 st.markdown('</div>', unsafe_allow_html=True)
 
             # ── 다운로드 & PPT ───────────────────────────────────
