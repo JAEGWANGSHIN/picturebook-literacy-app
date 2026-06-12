@@ -4,16 +4,18 @@ from __future__ import annotations
 import subprocess, sys, os
 
 def _ensure_pptxgenjs():
-    try:
-        result = subprocess.run(
-            ["node", "-e", "require('pptxgenjs')"],
-            capture_output=True, timeout=5
-        )
-        if result.returncode == 0:
-            return  # 이미 설치됨
-    except Exception:
-        pass
-    subprocess.run(["npm", "install", "-g", "pptxgenjs"], check=True, timeout=120)
+    """make_pptx.js 와 같은 디렉터리에 pptxgenjs 를 로컬 설치."""
+    app_dir = os.path.dirname(os.path.abspath(__file__))
+    nm_path = os.path.join(app_dir, "node_modules", "pptxgenjs")
+    if os.path.isdir(nm_path):
+        return  # 이미 설치됨
+    subprocess.run(
+        ["npm", "install", "pptxgenjs"],
+        cwd=app_dir,
+        check=True,
+        timeout=180,
+        capture_output=True,
+    )
 
 try:
     _ensure_pptxgenjs()

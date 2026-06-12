@@ -1,4 +1,9 @@
 // Usage: node make_pptx.js '<json_string>' '/output/path.pptx'
+// 로컬 node_modules 우선 탐색 (Streamlit Cloud 로컬 설치 대응)
+const path = require("path");
+const appDir = __dirname;
+const Module = require("module");
+Module.globalPaths.unshift(path.join(appDir, "node_modules"));
 const pptxgen = require("pptxgenjs");
 const data = JSON.parse(process.argv[2]);
 const outPath = process.argv[3];
