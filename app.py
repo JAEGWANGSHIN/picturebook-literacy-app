@@ -516,6 +516,97 @@ def gen_eval_parent(grade, theme, book) -> str:
         max_tokens=900,
     )
 
+
+# ── PDF 그림책 내용 추출 ──────────────────────────────────────────
+def extract_pdf_text(uploaded_file) -> str:
+    """업로드된 PDF에서 텍스트 추출 (PyMuPDF 우선, 없으면 pdfplumber)"""
+    try:
+        import fitz  # PyMuPDF
+        data = uploaded_file.read()
+        doc = fitz.open(stream=data, filetype="pdf")
+        pages = []
+        for page in doc:
+            pages.append(page.get_text())
+        text = "\n".join(pages).strip()
+        if len(text) > 100:
+            return text[:4000]  # 토큰 절약
+        # 텍스트가 너무 적으면 스캔본 → Vision API로 OCR
+        return _ocr_pdf_with_vision(data, doc)
+    except ImportError:
+        pass
+    try:
+        import pdfplumber
+        from io import BytesIO
+        uploaded_file.seek(0)
+        with pdfplumber.open(BytesIO(uploaded_file.read())) as pdf:
+            text = "\n".join(p.extract_text() or "" for p in pdf.pages[:10])
+        return text.strip()[:4000] if text.strip() else ""
+    except Exception as e:
+        return ""
+
+def _ocr_pdf_with_vision(pdf_bytes: bytes, doc) -> str:
+    """스캔 PDF: 첫 3페이지를 이미지로 변환 후 Vision API OCR"""
+    import base64
+    client = get_client()
+    results = []
+    for i, page in enumerate(doc):
+        if i >= 3:
+            break
+        pix = page.get_pixmap(dpi=150)
+        img_b64 = base64.b64encode(pix.tobytes("png")).decode()
+        try:
+            resp = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {"type": "image_url",
+                         "image_url": {"url": f"data:image/png;base64,{img_b64}"}},
+                        {"type": "text",
+                         "text": "이 그림책 페이지의 텍스트를 그대로 읽어주세요. 글이 없으면 그림 내용을 간략히 묘사해 주세요."}
+                    ]
+                }],
+                max_tokens=400,
+            )
+            results.append(resp.choices[0].message.content or "")
+        except Exception:
+            pass
+    return "\n".join(results)[:4000]
+
+def summarize_book_content(raw_text: str, book_title: str) -> str:
+    """추출된 텍스트를 수업용 줄거리·특성으로 요약"""
+    return chat(
+        "초등 그림책 전문가입니다. 한국어로 답합니다.",
+        f"""아래는 그림책 「{book_title}」의 내용입니다.
+다음 형식으로 요약해 주세요.
+
+[줄거리] 3~4문장
+[주요 등장인물] 간략히
+[핵심 메시지] 1~2문장
+[수업 활용 포인트] 초등 수업에서 어떻게 활용할 수 있는지 2~3가지
+
+---
+{raw_text[:3000]}""",
+        max_tokens=600,
+    )
+
+# ── 웹 검색으로 그림책 정보 조회 ─────────────────────────────────
+def search_book_online(book_title: str) -> str:
+    """OpenAI로 그림책 정보 검색 (웹 검색 대체 — 모델 지식 활용)"""
+    return chat(
+        "초등 그림책 전문가입니다. 한국어로 답합니다.",
+        f"""그림책 「{book_title}」에 대해 알려주세요.
+모르는 책이라면 솔직히 말해주세요.
+
+[작가/출판사]
+[줄거리] 3~4문장
+[주요 등장인물]
+[핵심 메시지] 1~2문장
+[초기 문해력 요소] 음운인식/어휘/이야기이해/추론/배경지식/감정이해 중 해당하는 것
+[수업 활용 포인트] 2~3가지""",
+        max_tokens=600,
+    )
+
 # ── DOCX ─────────────────────────────────────────────────────────
 def make_docx(sections: dict, title: str) -> bytes:
     doc = Document()
@@ -669,6 +760,8 @@ def main():
     book_tab1, book_tab2, book_tab3 = st.tabs(["🤖 AI 추천", "📚 DB에서 찾기", "✏️ 직접 입력"])
     book = ""
     book_info = None
+    custom_summary = ""
+    input_method = st.session_state.get("input_method", "📝 제목 입력")
 
     # ─ AI 추천 탭 ─
     with book_tab1:
@@ -740,11 +833,84 @@ def main():
 
     # ─ 직접 입력 탭 ─
     with book_tab3:
-        custom = st.text_input("그림책 제목", placeholder="예: 알사탕", key="custom_book")
-        if custom:
-            book = custom
-            book_info = db_get_by_title(custom)
-            st.success("✅ DB에 있는 책입니다!" if book_info else "ℹ️ DB에 없는 책 — AI 일반 지식으로 진행합니다.")
+        # 세 가지 방식 선택
+        input_method = st.radio(
+            "입력 방식",
+            ["📝 제목 입력", "📄 PDF 업로드", "🌐 웹 검색"],
+            horizontal=True,
+            key="input_method",
+            label_visibility="collapsed",
+        )
+        st.caption("📝 제목 직접 입력  　📄 그림책 PDF 업로드  　🌐 책 정보 웹 검색")
+
+        custom_summary = ""  # PDF/웹 검색으로 얻은 추가 정보
+
+        # ── 📝 제목 입력 ──
+        if input_method == "📝 제목 입력":
+            custom = st.text_input("그림책 제목", placeholder="예: 알사탕", key="custom_book_title")
+            if custom:
+                book = custom
+                book_info = db_get_by_title(custom)
+                if book_info:
+                    st.success("✅ DB에 있는 책입니다!")
+                else:
+                    st.info("ℹ️ DB에 없는 책 — AI 일반 지식으로 진행합니다.")
+
+        # ── 📄 PDF 업로드 ──
+        elif input_method == "📄 PDF 업로드":
+            st.caption("그림책을 스캔한 PDF 또는 텍스트 PDF를 올려주세요.")
+            pdf_file = st.file_uploader(
+                "PDF 업로드", type=["pdf"], key="pdf_upload",
+                label_visibility="collapsed"
+            )
+            pdf_title = st.text_input("그림책 제목 (필수)", placeholder="예: 우리 선생님이 최고야", key="pdf_title")
+
+            if pdf_file and pdf_title:
+                if st.button("📖 PDF 내용 분석하기", key="btn_pdf"):
+                    with st.spinner("PDF를 읽는 중... (스캔본은 조금 더 걸릴 수 있어요)"):
+                        raw = extract_pdf_text(pdf_file)
+                    if raw:
+                        with st.spinner("그림책 내용을 수업용으로 요약 중..."):
+                            summary = summarize_book_content(raw, pdf_title)
+                        st.session_state["custom_summary"] = summary
+                        st.session_state["custom_title"] = pdf_title
+                        st.success("✅ 분석 완료!")
+                    else:
+                        st.error("텍스트를 추출할 수 없었습니다. 파일을 확인해 주세요.")
+
+                if "custom_summary" in st.session_state and st.session_state.get("custom_title") == pdf_title:
+                    book = pdf_title
+                    custom_summary = st.session_state["custom_summary"]
+                    with st.expander("📋 분석된 내용 확인", expanded=True):
+                        st.markdown(custom_summary)
+
+        # ── 🌐 웹 검색 ──
+        elif input_method == "🌐 웹 검색":
+            st.caption("책 제목을 입력하면 AI가 책 정보를 검색해 드려요.")
+            search_title = st.text_input(
+                "그림책 제목 검색", placeholder="예: 100만 번 산 고양이",
+                key="web_search_title"
+            )
+            if search_title:
+                if st.button("🔍 책 정보 검색", key="btn_web_search"):
+                    with st.spinner(f"「{search_title}」 정보를 찾는 중..."):
+                        info = search_book_online(search_title)
+                    st.session_state["web_search_result"] = info
+                    st.session_state["web_search_title"] = search_title
+
+                if (st.session_state.get("web_search_title") == search_title
+                        and "web_search_result" in st.session_state):
+                    book = search_title
+                    custom_summary = st.session_state["web_search_result"]
+                    with st.expander("📋 검색된 책 정보", expanded=True):
+                        st.markdown(custom_summary)
+                    st.success("✅ 이 정보로 수업안을 만듭니다.")
+
+    # custom_summary 세션 관리
+    if book and custom_summary:
+        st.session_state["active_custom_summary"] = custom_summary
+    elif book and not custom_summary and input_method == "📝 제목 입력":
+        st.session_state.pop("active_custom_summary", None)
 
     # 선택된 책 표시
     if book:
@@ -757,6 +923,13 @@ def main():
                 f'<div class="bc-meta">{book_info["author"]} · {book_info["summary"]}</div>'
                 f'<div class="bc-tags">{tags_html}</div></div></div>',
                 unsafe_allow_html=True)
+        elif st.session_state.get("active_custom_summary"):
+            st.markdown(
+                f'<div class="book-card"><span class="bc-icon">📕</span>'
+                f'<div><div class="bc-title">{book}</div>'
+                f'<div class="bc-meta" style="color:#5D8A65;">'
+                f'✅ 내용 분석 완료 — 이 정보로 수업안을 생성합니다</div></div></div>',
+                unsafe_allow_html=True)
         else:
             st.info(f"📖 선택된 책: **{book}**")
 
@@ -767,30 +940,33 @@ def main():
     if not book:
         st.info("책을 먼저 선택해 주세요.")
     else:
+        # PDF/웹검색으로 얻은 책 정보
+        _ctx_extra = st.session_state.get("active_custom_summary", "")
+
         sc1, sc2, sc3, sc4 = st.columns(4)
         with sc1:
             if st.button("❓ 질문 생성", use_container_width=True, key="btn_q"):
                 with st.spinner("질문 생성 중..."):
-                    qs = gen_questions(grade, theme, book, book_info)
+                    qs = gen_questions(grade, theme, book, book_info, _ctx_extra)
                 st.session_state["questions"] = qs
                 st.session_state["q_meta"] = (grade, theme, book)
 
         with sc2:
             if st.button("🎨 활동 생성", use_container_width=True, key="btn_a"):
                 with st.spinner("활동 생성 중..."):
-                    acts = gen_activities(grade, theme, book, lesson_time, student_context)
+                    acts = gen_activities(grade, theme, book, lesson_time, student_context, _ctx_extra)
                 st.session_state["activities"] = acts
 
         with sc3:
             if st.button("🗒️ 지도안 생성", use_container_width=True, key="btn_l"):
                 with st.spinner("지도안 생성 중..."):
-                    lp = gen_lessonplan(grade, theme, book, lesson_time, student_context)
+                    lp = gen_lessonplan(grade, theme, book, lesson_time, student_context, _ctx_extra)
                 st.session_state["lessonplan"] = lp
 
         with sc4:
             if st.button("⭐ 평가+안내문", use_container_width=True, key="btn_e"):
                 with st.spinner("평가·안내문 생성 중..."):
-                    ev = gen_eval_parent(grade, theme, book)
+                    ev = gen_eval_parent(grade, theme, book, _ctx_extra)
                 st.session_state["eval_parent"] = ev
 
         # ── 결과 ──────────────────────────────────────────────────
