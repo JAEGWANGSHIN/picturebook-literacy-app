@@ -347,6 +347,11 @@ html, body,
   background: white !important;
   font-size: .88rem !important;
 }
+/* 라벨 caption과 위젯 사이 간격 최소화 */
+[data-testid="stCaptionContainer"] {
+  margin-bottom: -10px !important;
+  padding-bottom: 0 !important;
+}
 [data-testid="stSelectbox"] > div > div:focus-within,
 [data-testid="stTextInput"] > div > div > input:focus,
 [data-testid="stTextArea"] > div > div > textarea:focus {
@@ -895,19 +900,23 @@ def main():
 
     # ── STEP 1: 수업 조건 ──────────────────────────────────────────
     st.markdown('<div class="section-title st-blue">수업 조건</div>', unsafe_allow_html=True)
+    # 라벨을 selectbox 위에 표시
+    lc1, lc2, lc3 = st.columns(3)
+    with lc1: st.caption("📌 학년")
+    with lc2: st.caption("🎯 주제")
+    with lc3: st.caption("⏰ 수업 시간")
     c1, c2, c3 = st.columns(3)
-    with c1: grade = st.selectbox("학년", ["유치원","초등 1학년","초등 2학년","초등 3학년",
+    with c1: grade = st.selectbox("학년", ["초등 1학년","초등 2학년","초등 3학년",
                                             "초등 4학년","초등 5학년","초등 6학년"],
                                    label_visibility="collapsed")
     with c2: theme = st.selectbox("주제", db_all_themes(), label_visibility="collapsed")
     with c3: lesson_time = st.selectbox("시간", ["40분","80분","120분","3차시","5차시"],
                                          label_visibility="collapsed")
-    st.caption("📌 학년 　　 🎯 주제 　　 ⏰ 수업 시간")
 
+    st.caption("📝 학생 특성 (선택)")
     student_context = st.text_area("학생 특성 (선택)",
         placeholder="예: 1학년 입학 초기, 친구 관계가 서툰 편, 글쓰기 부담이 큼 등",
         height=64, label_visibility="collapsed")
-    st.caption("📝 학생 특성 (선택)")
 
     # ── STEP 2: 그림책 선택 ────────────────────────────────────────
     st.markdown('<div class="section-title st-purple">그림책 선택</div>', unsafe_allow_html=True)
@@ -970,8 +979,8 @@ def main():
         if show_db:
             fc1, fc2 = st.columns(2)
             with fc1: ft = st.selectbox("주제", ["전체"] + db_all_themes(), key="dbt")
-            with fc2: fg = st.selectbox("학년", ["전체","유치원","초등 1학년","초등 2학년",
-                                                   "초등 3학년","초등 4학년"], key="dbg")
+            with fc2: fg = st.selectbox("학년", ["전체","초등 1학년","초등 2학년",
+                                                   "초등 3학년","초등 4학년","초등 5학년","초등 6학년"], key="dbg")
             filtered = db_search("" if ft=="전체" else ft, "" if fg=="전체" else fg)
             st.caption(f"검색 결과 {len(filtered)}권")
             cards = ""
