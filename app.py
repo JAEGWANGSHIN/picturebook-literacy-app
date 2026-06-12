@@ -388,24 +388,8 @@ html, body,
   font-weight: 500;
 }
 
-/* ── AI 추천 칩 ── */
-.rec-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: .8rem; }
-.rec-chip {
-  background: white;
-  border: 1px solid #D1D5DB;
-  border-radius: 6px;
-  padding: 6px 14px;
-  font-size: .82rem;
-  font-weight: 500;
-  color: #374151;
-  cursor: pointer;
-  transition: all .15s;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.rec-chip:hover { border-color: #6366F1; background: #EEF2FF; color: #4338CA; }
-.rec-chip .rn { font-weight: 700; color: #6366F1; }
+/* ── AI 추천 버튼 ── */
+/* 추천 책 버튼: secondary 스타일 그대로 활용, 선택 시 ✅ 접두어로 구분 */
 
 /* ── 질문 카드 ── */
 .q-grid {
@@ -948,30 +932,19 @@ def main():
                 st.session_state["ai_recs"] = recs
 
         if "ai_recs" in st.session_state and st.session_state["ai_recs"]:
-            st.markdown("**추천 그림책** — 선택하면 바로 적용됩니다")
-            chips_html = '<div class="rec-chips">'
+            st.markdown('<div style="font-size:.8rem;font-weight:600;color:#6B7280;margin-bottom:.5rem;">추천 그림책 — 버튼을 누르면 바로 적용됩니다</div>', unsafe_allow_html=True)
             for i, r in enumerate(st.session_state["ai_recs"]):
-                chips_html += (
-                    f'<div class="rec-chip">'
-                    f'<span class="rn">{i+1}</span> {r["title"]}'
-                    f'</div>'
-                )
-            chips_html += "</div>"
-            st.markdown(chips_html, unsafe_allow_html=True)
-
-            chosen = st.radio("선택", [r["title"] for r in st.session_state["ai_recs"]],
-                              label_visibility="collapsed", horizontal=True, key="ai_chosen")
-            if chosen:
-                for r in st.session_state["ai_recs"]:
-                    if r["title"] == chosen:
-                        st.caption(f"💡 추천 이유: {r.get('reason','')}")
-                        break
-                if st.button("✅ 이 책으로 선택", key="btn_ai_select"):
+                # 현재 선택된 책이면 강조 스타일
+                is_selected = st.session_state.get("active_book") == r["title"] and st.session_state.get("active_tab") == "ai"
+                label = f"{'✅ ' if is_selected else ''}{i+1}. {r['title']}"
+                if st.button(label, key=f"btn_ai_book_{i}", use_container_width=True):
                     st.session_state["active_tab"] = "ai"
-                    st.session_state["active_book"] = chosen
-                    st.session_state["active_book_info"] = db_get_by_title(chosen)
+                    st.session_state["active_book"] = r["title"]
+                    st.session_state["active_book_info"] = db_get_by_title(r["title"])
                     st.session_state.pop("active_custom_summary", None)
                     st.rerun()
+                if r.get("reason"):
+                    st.caption(f"💡 {r['reason']}")
 
     # ─ DB 탭 ─
     with book_tab2:
