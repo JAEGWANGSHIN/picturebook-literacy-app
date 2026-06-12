@@ -870,19 +870,34 @@ def make_docx(sections: dict, title: str) -> bytes:
     buf = BytesIO(); doc.save(buf); return buf.getvalue()
 
 # ── PPTX ─────────────────────────────────────────────────────────
-def make_pptx(grade, theme, book, lesson_time, questions, activities_text) -> bytes | None:
-    # 활동 파싱
+def _parse_evals(raw: str) -> list:
+    """eval_parent JSON에서 criteria 추출"""
+    if not raw: return []
+    import re
+    try:
+        m = re.search(r'\{.*\}', raw, re.DOTALL)
+        data = json.loads(m.group()) if m else {}
+        return data.get("criteria", [])
+    except Exception:
+        return []
+
+def make_pptx(grade, theme, book, lesson_time, questions, activities_text, eval_raw: str = "") -> bytes | None:
+    # 활동 파싱 (JSON 구조)
     acts = []
     if activities_text:
         import re
-        for m in re.finditer(r'##\s+활동\s*\d+[:：]\s*(.+?)\n(.*?)(?=##\s+활동|\Z)',
-                              activities_text, re.DOTALL):
-            title_act = m.group(1).strip()
-            body = m.group(2).strip()
-            desc_m = re.search(r'진행[:：]\s*(.+?)(?:\n|$)', body)
-            desc = desc_m.group(1).strip() if desc_m else body[:60]
+        try:
+            m = re.search(r'\[.*\]', activities_text, re.DOTALL)
+            act_list = json.loads(m.group()) if m else []
             icons = ["🌱","📖","✍️"]
-            acts.append({"icon": icons[len(acts) % 3], "title": title_act, "desc": desc})
+            for i, a in enumerate(act_list):
+                acts.append({
+                    "icon": icons[i % 3],
+                    "title": a.get("title",""),
+                    "desc": " ".join(a.get("process",[][:1])) or a.get("goal","")
+                })
+        except Exception:
+            pass
 
     # 수업 목표 (간단 생성)
     obj_resp = chat(
@@ -911,7 +926,7 @@ def make_pptx(grade, theme, book, lesson_time, questions, activities_text) -> by
             {"icon":"📖","title":"대화형 읽기","desc":"PEER 절차로 그림책 읽기, 질문-응답"},
             {"icon":"✍️","title":"표현 활동","desc":"느낀 점 쓰기, 그림으로 표현하기"},
         ],
-        "evaluations": [],
+        "evaluations": _parse_evals(eval_raw),
     }
 
     json_str = json.dumps(data, ensure_ascii=False)
@@ -1529,6 +1544,7 @@ def main():
                                 grade, theme, book, lesson_time,
                                 st.session_state.get("questions", {}),
                                 st.session_state.get("activities", ""),
+                                st.session_state.get("eval_parent", ""),
                             )
                         if pptx_bytes:
                             st.session_state["pptx_bytes"] = pptx_bytes
