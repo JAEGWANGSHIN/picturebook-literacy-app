@@ -762,6 +762,9 @@ def main():
     st.markdown('<div class="sec-label">② 그림책 선택</div>', unsafe_allow_html=True)
 
     book_tab1, book_tab2, book_tab3 = st.tabs(["🤖 AI 추천", "📚 DB에서 찾기", "✏️ 직접 입력"])
+
+    # 탭별로 독립적인 book/book_info 관리
+    # 각 탭은 자신이 활성일 때만 book/book_info를 session_state에 저장
     book = ""
     book_info = None
     custom_summary = ""
@@ -799,12 +802,16 @@ def main():
             chosen = st.radio("선택", [r["title"] for r in st.session_state["ai_recs"]],
                               label_visibility="collapsed", horizontal=True, key="ai_chosen")
             if chosen:
-                book = chosen
-                book_info = db_get_by_title(chosen)
                 for r in st.session_state["ai_recs"]:
                     if r["title"] == chosen:
                         st.caption(f"💡 추천 이유: {r.get('reason','')}")
                         break
+                if st.button("✅ 이 책으로 선택", key="btn_ai_select"):
+                    st.session_state["active_tab"] = "ai"
+                    st.session_state["active_book"] = chosen
+                    st.session_state["active_book_info"] = db_get_by_title(chosen)
+                    st.session_state.pop("active_custom_summary", None)
+                    st.rerun()
 
     # ─ DB 탭 ─
     with book_tab2:
@@ -830,8 +837,19 @@ def main():
         if rec:
             sel = st.selectbox(f"추천 ({len(rec)}권 — {grade} × {theme})",
                                [b["title"] for b in rec])
-            book = sel
-            book_info = db_get_by_title(sel)
+            # DB 탭이 포커스될 때만 active_tab을 "db"로 설정
+            if st.button("✅ 이 책으로 선택", key="btn_db_select", use_container_width=False):
+                st.session_state["active_tab"] = "db"
+                st.session_state["active_book"] = sel
+                st.session_state["active_book_info"] = db_get_by_title(sel)
+                st.session_state.pop("active_custom_summary", None)
+                st.rerun()
+            # 현재 active_tab이 db인 경우에만 book 설정
+            if st.session_state.get("active_tab") == "db":
+                saved = st.session_state.get("active_book", "")
+                if saved in [b["title"] for b in rec]:
+                    book = saved
+                    book_info = st.session_state.get("active_book_info")
         else:
             st.info("조건에 맞는 책이 없습니다.")
 
@@ -853,12 +871,17 @@ def main():
         if input_method == "📝 제목 입력":
             custom = st.text_input("그림책 제목", placeholder="예: 알사탕", key="custom_book_title")
             if custom:
-                book = custom
-                book_info = db_get_by_title(custom)
-                if book_info:
+                _bi = db_get_by_title(custom)
+                if _bi:
                     st.success("✅ DB에 있는 책입니다!")
                 else:
                     st.info("ℹ️ DB에 없는 책 — AI 일반 지식으로 진행합니다.")
+                if st.button("✅ 이 책으로 선택", key="btn_title_select"):
+                    st.session_state["active_tab"] = "title"
+                    st.session_state["active_book"] = custom
+                    st.session_state["active_book_info"] = _bi
+                    st.session_state.pop("active_custom_summary", None)
+                    st.rerun()
 
         # ── 📄 PDF 업로드 ──
         elif input_method == "📄 PDF 업로드":
@@ -883,8 +906,12 @@ def main():
                         st.error("텍스트를 추출할 수 없었습니다. 파일을 확인해 주세요.")
 
                 if "custom_summary" in st.session_state and st.session_state.get("custom_title") == pdf_title:
+                    st.session_state["active_tab"] = "pdf"
+                    st.session_state["active_book"] = pdf_title
+                    st.session_state["active_book_info"] = None
                     book = pdf_title
                     custom_summary = st.session_state["custom_summary"]
+                    st.session_state["active_custom_summary"] = custom_summary
                     with st.expander("📋 분석된 내용 확인", expanded=True):
                         st.markdown(custom_summary)
 
@@ -904,17 +931,29 @@ def main():
 
                 if (st.session_state.get("web_search_title") == search_title
                         and "web_search_result" in st.session_state):
+                    st.session_state["active_tab"] = "web"
+                    st.session_state["active_book"] = search_title
+                    st.session_state["active_book_info"] = None
                     book = search_title
                     custom_summary = st.session_state["web_search_result"]
+                    st.session_state["active_custom_summary"] = custom_summary
                     with st.expander("📋 검색된 책 정보", expanded=True):
                         st.markdown(custom_summary)
                     st.success("✅ 이 정보로 수업안을 만듭니다.")
 
-    # custom_summary 세션 관리
-    if book and custom_summary:
-        st.session_state["active_custom_summary"] = custom_summary
-    elif book and not custom_summary and input_method == "📝 제목 입력":
-        st.session_state.pop("active_custom_summary", None)
+    # ── 최종 book/book_info 결정: active_tab 기준 ──────────────────
+    # 탭과 무관하게 session_state의 active_tab이 기준
+    active_tab = st.session_state.get("active_tab", "")
+
+    if active_tab in ("ai", "db", "title"):
+        book = st.session_state.get("active_book", "")
+        book_info = st.session_state.get("active_book_info")
+        custom_summary = ""
+    elif active_tab in ("pdf", "web"):
+        book = st.session_state.get("active_book", "")
+        book_info = None
+        custom_summary = st.session_state.get("active_custom_summary", "")
+    # active_tab이 없으면 book=""로 유지 (초기 상태)
 
     # 선택된 책 표시
     if book:
