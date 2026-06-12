@@ -272,12 +272,29 @@ def ai_recommend_books(situation: str) -> list[dict]:
 
 # ── 질문 생성 ─────────────────────────────────────────────────────
 def gen_questions(grade, theme, book, book_info) -> dict:
-    book_ctx = f"작가: {book_info['author']}\n줄거리: {book_info['summary']}" if book_info else ""
+    if book_info:
+        book_ctx = (
+            f"작가: {book_info['author']}\n"
+            f"줄거리: {book_info['summary']}\n"
+            f"이 책의 문해력 요소: {', '.join(book_info.get('literacy_elements', []))}"
+        )
+    else:
+        book_ctx = ""
+
+    # 수업 주제와 책의 문해력 요소를 모두 질문에 반영하도록 명시
+    theme_instruction = (
+        f"수업 주제는 '{theme}'입니다. "
+        f"질문의 상당수(최소 3~4개)는 반드시 '{theme}' 관련 내용을 포함해야 합니다. "
+        f"예를 들어 주제가 '음운인식'이라면 소리·음절·운율·글자 등에 대한 질문을 꼭 넣어 주세요. "
+        f"나머지 질문은 그림책 내용(이야기·감정·인물 등)과 연결합니다."
+    )
+
     resp = chat(
         "당신은 초등 그림책 질문 수업 전문가입니다. 반드시 JSON으로만 응답하세요.",
         f"""그림책: {book}
 {book_ctx}
-학년: {grade} / 주제: {theme}
+학년: {grade}
+{theme_instruction}
 
 읽기 전 질문 3개, 읽는 중 질문 5개, 읽은 후 질문 5개를 만들어 주세요.
 각 질문은 사실/추론/평가/감정/작가/삶연결 중 하나의 유형을 가집니다.
