@@ -346,6 +346,16 @@ html, body,
   border: 1px solid #D1D5DB !important;
   background: white !important;
   font-size: .88rem !important;
+  color: #111827 !important;
+}
+/* selectbox 선택된 값 텍스트 — 모든 환경에서 진하게 */
+[data-testid="stSelectbox"] span,
+[data-testid="stSelectbox"] p,
+[data-testid="stSelectbox"] [data-baseweb="select"] span,
+[data-testid="stSelectbox"] [class*="valueContainer"] span,
+[data-testid="stSelectbox"] [class*="singleValue"] {
+  color: #111827 !important;
+  opacity: 1 !important;
 }
 /* 라벨 caption과 위젯 사이 간격 최소화 */
 [data-testid="stCaptionContainer"] {
