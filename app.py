@@ -1379,7 +1379,7 @@ def main():
     <div class="top-bar">
       <span class="top-bar-icon">📚</span>
       <span class="top-bar-title">AI 그림책 질문수업 설계기</span>
-      <span class="top-bar-sub">초기 문해력 수업 코파일럿</span>
+      <span class="top-bar-sub">초기 문해력 수업 코파일럿 &nbsp;|&nbsp; 만든이: 울산초 교사 신재광</span>
     </div>
     """, unsafe_allow_html=True)
 
