@@ -574,11 +574,62 @@ html, body,
   color: #166534 !important;
 }
 
-/* ── 반응형 ── */
-@media(max-width:600px){
-  .main .block-container { padding: 0 .6rem 2rem !important; }
-  .top-bar { margin: 0 -.6rem 1.2rem; padding: .8rem 1rem; }
-  .q-grid { grid-template-columns: 1fr; }
+/* ── 반응형 (모바일 전면 대응) ── */
+@media(max-width:768px){
+  /* 레이아웃 */
+  .main .block-container { padding: 0 .5rem 2rem !important; max-width:100% !important; }
+  .top-bar { margin: 0 -.5rem 1rem !important; padding: .75rem .9rem !important; flex-wrap:wrap; gap:4px; }
+  .top-bar-sub { font-size:.65rem !important; margin-left:0 !important; width:100%; }
+  .top-bar-title { font-size:.9rem !important; }
+
+  /* 섹션 타이틀 */
+  .section-title { font-size:.68rem !important; padding:.45rem .7rem !important; margin:.8rem 0 .5rem !important; }
+
+  /* 폼 위젯 — 라벨 작게 */
+  [data-testid="stSelectbox"] label,
+  [data-testid="stTextArea"] label,
+  [data-testid="stTextInput"] label { font-size:.78rem !important; }
+  [data-testid="stSelectbox"] > div > div,
+  [data-testid="stTextInput"] > div > div > input,
+  [data-testid="stTextArea"] > div > div > textarea { font-size:.82rem !important; }
+
+  /* 3열 → 세로 스택 (모바일에서 컬럼 너무 좁음 방지) */
+  [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; gap: 0 !important; }
+  [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+    min-width: 100% !important; flex: 1 1 100% !important;
+  }
+  /* 단, 2열은 유지 */
+  [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"]:nth-child(2):last-child) > [data-testid="stColumn"] {
+    min-width: 48% !important; flex: 1 1 48% !important;
+  }
+
+  /* 버튼 */
+  [data-testid="baseButton-primary"] { font-size:.9rem !important; padding:.65rem 0 !important; }
+  [data-testid="baseButton-secondary"] { font-size:.8rem !important; }
+
+  /* 질문 카드 */
+  .q-grid { grid-template-columns: 1fr !important; }
+
+  /* 탭 */
+  [data-testid="stTabs"] [role="tab"] { font-size:.78rem !important; padding:.45rem .6rem !important; }
+
+  /* 활동/지도안 테이블 — 모바일에서 스크롤 */
+  .lp-table, .eval-table {
+    display:block; overflow-x:auto; white-space:nowrap;
+    font-size:.75rem !important;
+  }
+  .lp-table td, .lp-table th,
+  .eval-table td, .eval-table th { white-space:normal !important; min-width:80px; }
+
+  /* 책 카드 */
+  .book-card { padding:.65rem .8rem !important; }
+  .bc-title { font-size:.82rem !important; }
+  .bc-meta  { font-size:.7rem !important; }
+
+  /* 결과 섹션 */
+  .result-section > div:first-child { font-size:.84rem !important; }
+  .act-card { padding:.85rem .9rem !important; }
+  .act-title { font-size:.88rem !important; }
 }
 </style>
 """
@@ -1385,23 +1436,16 @@ def main():
 
     # ── STEP 1: 수업 조건 ──────────────────────────────────────────
     st.markdown('<div class="section-title st-blue">수업 조건</div>', unsafe_allow_html=True)
-    # 라벨을 selectbox 위에 표시
-    lc1, lc2, lc3 = st.columns(3)
-    with lc1: st.caption("📌 학년")
-    with lc2: st.caption("🎯 주제")
-    with lc3: st.caption("⏰ 수업 시간")
+    # 모바일 대응: label 직접 표시 (label_visibility="visible")
     c1, c2, c3 = st.columns(3)
-    with c1: grade = st.selectbox("학년", ["초등 1학년","초등 2학년","초등 3학년",
-                                            "초등 4학년","초등 5학년","초등 6학년"],
-                                   label_visibility="collapsed")
-    with c2: theme = st.selectbox("주제", db_all_themes(), label_visibility="collapsed")
-    with c3: lesson_time = st.selectbox("시간", ["40분","80분","120분","3차시","5차시"],
-                                         label_visibility="collapsed")
+    with c1: grade = st.selectbox("📌 학년", ["초등 1학년","초등 2학년","초등 3학년",
+                                              "초등 4학년","초등 5학년","초등 6학년"])
+    with c2: theme = st.selectbox("🎯 주제", db_all_themes())
+    with c3: lesson_time = st.selectbox("⏰ 수업 시간", ["40분","80분","120분","3차시","5차시"])
 
-    st.caption("📝 학생 특성 (선택)")
-    student_context = st.text_area("학생 특성 (선택)",
+    student_context = st.text_area("📝 학생 특성 (선택)",
         placeholder="예: 1학년 입학 초기, 친구 관계가 서툰 편, 글쓰기 부담이 큼 등",
-        height=64, label_visibility="collapsed")
+        height=64)
 
     # ── STEP 2: 그림책 선택 ────────────────────────────────────────
     st.markdown('<div class="section-title st-purple">그림책 선택</div>', unsafe_allow_html=True)
